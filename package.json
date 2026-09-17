@@ -3,19 +3,27 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
+  "dev": "next dev -p 3001",
+  "build": "next build",
+  "start": "next start -p 3001",
+  "lint": "eslint"
+},
   "dependencies": {
+    "@nestjs/jwt": "^12.0.1",
+    "@nestjs/passport": "^12.0.0",
+    "bcrypt": "^6.0.0",
+    "lucide-react": "^1.43.0",
     "next": "16.3.4",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20",
+    "@types/passport-jwt": "^4.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
