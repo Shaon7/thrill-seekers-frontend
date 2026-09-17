@@ -308,7 +308,7 @@ export default function Navbar() {
       setUserMenuOpen(false);
 
       window.location.href =
-        "http://localhost:3001";
+        "https://thrillseekers.vercel.app/";
     }
   };
 
