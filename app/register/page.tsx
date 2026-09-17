@@ -346,7 +346,7 @@ export default function RegisterPage() {
               )}
 
               <p className="text-green-400/70 text-xs mt-1">
-                Your account has been created successfully & Sent Mail with user ID. 
+                Your account has been created successfully.
               </p>
                 
               <Link
