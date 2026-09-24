@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   Menu,
   Bell,
@@ -18,6 +20,8 @@ import {
   useRouter,
 } from "next/navigation";
 
+import logo from "../icon.png";
+
 interface Player {
   id: number;
   playerId: string;
@@ -28,6 +32,21 @@ interface Player {
   isAdmin: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+interface Payment {
+  id: number;
+  playerId: string;
+  divisionId: string;
+  amount: string | number;
+  paymentType: "DIVISION_FEE" | "FINE";
+  status: "PENDING" | "PAID" | "REJECTED";
+  senderBkashNumber?: string | null;
+  transactionId?: string | null;
+  rejectionReason?: string | null;
+  verifiedAt?: string | null;
+  createdAt: string;
+  verifiedBy?: string | null;
 }
 
 export default function Navbar() {
@@ -48,6 +67,9 @@ export default function Navbar() {
 
   const [homePath, setHomePath] =
     useState("/home");
+
+  const [pendingPaymentCount, setPendingPaymentCount] =
+    useState(0);
 
   // =====================================================
   // NAVIGATION ITEMS
@@ -129,6 +151,86 @@ export default function Navbar() {
       );
     };
   }, []);
+
+  // =====================================================
+  // LOAD PENDING PAYMENTS
+  // =====================================================
+
+  useEffect(() => {
+    const loadPendingPayments = async () => {
+      try {
+        // Super Admin does not use /payments/my
+        if (userType === "superadmin") {
+          setPendingPaymentCount(0);
+          return;
+        }
+
+        const token =
+          localStorage.getItem("access_token");
+
+        if (!token) {
+          setPendingPaymentCount(0);
+          return;
+        }
+
+        const response = await fetch(
+          "https://thrill-seekers-backend-production.up.railway.app/payments/my",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          setPendingPaymentCount(0);
+          return;
+        }
+
+        const data = await response.json();
+
+        const payments: Payment[] =
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        const pendingCount =
+          payments.filter(
+            (payment) =>
+              payment.status === "PENDING",
+          ).length;
+
+        setPendingPaymentCount(pendingCount);
+      } catch (error) {
+        console.error(
+          "Navbar payment loading error:",
+          error,
+        );
+
+        setPendingPaymentCount(0);
+      }
+    };
+
+    if (userType !== "superadmin") {
+      loadPendingPayments();
+
+      const interval = setInterval(
+        loadPendingPayments,
+        10000,
+      );
+
+      return () => {
+        clearInterval(interval);
+      };
+    }
+
+    setPendingPaymentCount(0);
+  }, [userType, pathname]);
 
   // =====================================================
   // ROUTES
@@ -285,7 +387,6 @@ export default function Navbar() {
         error,
       );
     } finally {
-      // Clear all authentication data
       localStorage.removeItem(
         "player",
       );
@@ -306,6 +407,7 @@ export default function Navbar() {
       setUserType("");
       setMobileMenuOpen(false);
       setUserMenuOpen(false);
+      setPendingPaymentCount(0);
 
       window.location.href =
         "https://thrillseekers.vercel.app/";
@@ -322,39 +424,108 @@ export default function Navbar() {
       : player?.name || "Player";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#080808]/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 overflow-visible border-b border-yellow-400/30 bg-black">
+
+      {/* =================================================
+          BACKGROUND EFFECT
+      ================================================== */}
+
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+
+        {/* Main glow */}
+
+        <div className="absolute -left-24 -top-20 h-56 w-56 rounded-full bg-yellow-400/10 blur-3xl" />
+
+        <div className="absolute left-[28%] -top-16 h-40 w-40 rounded-full bg-yellow-300/10 blur-3xl" />
+
+        <div className="absolute right-[-70px] top-[-70px] h-60 w-60 rounded-full bg-yellow-400/10 blur-3xl" />
+
+        {/* Gold light streak 1 */}
+
+        <div className="absolute -left-20 top-8 h-[2px] w-[48%] rotate-[-13deg] bg-gradient-to-r from-transparent via-yellow-300/70 to-transparent blur-[1px]" />
+
+        {/* Gold light streak 2 */}
+
+        <div className="absolute left-[-30px] top-[68px] h-[2px] w-[45%] rotate-[-13deg] bg-gradient-to-r from-transparent via-yellow-400/80 to-transparent blur-[1px]" />
+
+        {/* Gold light streak 3 */}
+
+        <div className="absolute right-[-80px] top-[72px] h-[2px] w-[52%] rotate-[-12deg] bg-gradient-to-r from-transparent via-yellow-400/70 to-transparent blur-[1px]" />
+
+        {/* Gold light streak 4 */}
+
+        <div className="absolute right-[3%] bottom-[18px] h-[2px] w-[42%] rotate-[-13deg] bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent blur-[1px]" />
+
+        {/* Tiny light points */}
+
+        <div className="absolute left-[31%] top-5 h-1.5 w-1.5 rounded-full bg-yellow-300/70 blur-[1px]" />
+
+        <div className="absolute right-[30%] top-10 h-1 w-1 rounded-full bg-yellow-300/80 blur-[1px]" />
+
+        <div className="absolute left-[48%] bottom-6 h-1 w-1 rounded-full bg-yellow-300/60 blur-[1px]" />
+
+        <div className="absolute right-[17%] bottom-10 h-1.5 w-1.5 rounded-full bg-yellow-300/60 blur-[1px]" />
+      </div>
+
+      {/* =================================================
+          MAIN NAVBAR
+      ================================================== */}
+
+      <div className="relative mx-auto flex min-h-[112px] max-w-7xl items-center justify-between px-4 sm:min-h-[122px] sm:px-6 lg:min-h-[96px] lg:px-8">
 
         {/* =================================================
-            LOGO
+            LOGO + BRAND
         ================================================== */}
 
         <div
-          className="flex cursor-pointer items-center gap-3"
+          className="flex min-w-0 cursor-pointer items-center"
           onClick={() =>
             router.push(homePath)
           }
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400 font-black text-black">
-            TS
+
+          {/* LOGO */}
+
+          <div className="relative flex h-[55] w-[55] shrink-0 items-center justify-center sm:h-[86px] sm:w-[86px] lg:h-[72px] lg:w-[72px]">
+
+            <div className="absolute inset-2 rounded-full bg-yellow-400/10 blur-xl" />
+
+            <Image
+              src={logo}
+              alt="Thrill Seekers"
+              width={96}
+              height={96}
+              priority
+              className="relative h-full w-full object-contain drop-shadow-[0_0_16px_rgba(250,204,21,0.32)]"
+            />
+
           </div>
 
-          <div>
-            <p className="font-bold tracking-tight">
+          {/* VERTICAL DIVIDER */}
+
+          <div className="mx-3 h-[58px] w-px bg-gradient-to-b from-transparent via-yellow-300/80 to-transparent sm:mx-4 sm:h-[64px] lg:mx-5 lg:h-[58px]" />
+
+          {/* BRAND */}
+
+          <div className="min-w-0">
+
+            <p className="whitespace-nowrap text-[17px] font-black leading-none tracking-[-0.02em] text-yellow-400 sm:text-[25px] lg:text-[22px]">
               THRILL SEEKERS
             </p>
 
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">
-              eFootball Club
+            <p className="mt-2 whitespace-nowrap text-[8px] font-medium uppercase tracking-[0.42em] text-yellow-100/75 sm:text-[10px] lg:text-[9px]">
+              EFOOTBALL CLUB
             </p>
+
           </div>
+
         </div>
 
         {/* =================================================
             DESKTOP NAVIGATION
         ================================================== */}
 
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-6 xl:flex">
 
           {navItems.map(
             (item) => {
@@ -367,13 +538,31 @@ export default function Navbar() {
                   onClick={() =>
                     handleNavigation(item)
                   }
-                  className={`text-sm font-medium transition ${
+                  className={`relative py-2 text-sm font-semibold transition ${
                     isActive
                       ? "text-yellow-400"
                       : "text-zinc-400 hover:text-white"
                   }`}
                 >
-                  {item}
+
+                  <span className="inline-flex items-center gap-2">
+                    {item}
+
+                    {/* PENDING PAYMENT BADGE */}
+
+                    {item === "Payments" &&
+                      userType !== "superadmin" &&
+                      pendingPaymentCount > 0 && (
+                        <span className="flex min-w-[20px] h-[20px] items-center justify-center rounded-full bg-yellow-400 px-1.5 text-[10px] font-black text-black shadow-[0_0_10px_rgba(250,204,21,0.35)]">
+                          {pendingPaymentCount}
+                        </span>
+                      )}
+                  </span>
+
+                  {isActive && (
+                    <span className="absolute -bottom-2 left-1/2 h-[2px] w-6 -translate-x-1/2 rounded-full bg-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]" />
+                  )}
+
                 </button>
               );
             },
@@ -385,13 +574,13 @@ export default function Navbar() {
             RIGHT SIDE
         ================================================== */}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
 
           {/* Notification */}
 
           <button
             type="button"
-            className="hidden rounded-xl border border-white/10 bg-white/5 p-2.5 text-zinc-300 transition hover:bg-white/10 sm:block"
+            className="hidden rounded-xl border border-yellow-400/15 bg-black/30 p-2.5 text-zinc-300 transition hover:border-yellow-400/30 hover:bg-yellow-400/10 hover:text-yellow-400 sm:block"
           >
             <Bell size={18} />
           </button>
@@ -406,22 +595,25 @@ export default function Navbar() {
               type="button"
               onClick={() =>
                 setUserMenuOpen(
-                  (current) => !current,
+                  (current) =>
+                    !current,
                 )
               }
               className={`flex items-center gap-2 rounded-xl border px-3 py-2 transition ${
                 userMenuOpen
-                  ? "border-yellow-400/30 bg-zinc-800"
-                  : "border-white/10 bg-zinc-900 hover:bg-zinc-800"
+                  ? "border-yellow-400/30 bg-yellow-400/10"
+                  : "border-white/10 bg-black/25 hover:border-yellow-400/25 hover:bg-yellow-400/5"
               }`}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-400 text-black">
+
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-yellow-400 text-black shadow-[0_0_12px_rgba(250,204,21,0.3)]">
                 <User size={16} />
               </div>
 
-              <span className="max-w-[140px] truncate text-sm font-medium">
+              <span className="max-w-[140px] truncate text-sm font-medium text-white">
                 {displayName}
               </span>
+
             </button>
 
             {/* =================================================
@@ -429,7 +621,7 @@ export default function Navbar() {
             ================================================== */}
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 p-1.5 shadow-2xl">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-48 overflow-visible rounded-2xl border border-yellow-400/15 bg-zinc-950/95 p-1.5 shadow-2xl backdrop-blur-xl">
 
                 <button
                   type="button"
@@ -438,6 +630,7 @@ export default function Navbar() {
                   }
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
                 >
+
                   <LogOut
                     size={17}
                   />
@@ -445,6 +638,7 @@ export default function Navbar() {
                   <span>
                     Logout
                   </span>
+
                 </button>
 
               </div>
@@ -453,7 +647,7 @@ export default function Navbar() {
           </div>
 
           {/* =================================================
-              MOBILE MENU
+              MOBILE MENU BUTTON
           ================================================== */}
 
           <button
@@ -463,24 +657,32 @@ export default function Navbar() {
                 !mobileMenuOpen,
               )
             }
-            className="rounded-xl border border-white/10 bg-white/5 p-2.5 lg:hidden"
+            className="flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] border border-yellow-400/25 bg-black/35 text-yellow-100 shadow-[0_0_22px_rgba(250,204,21,0.08)] backdrop-blur-sm transition hover:border-yellow-400/45 hover:bg-yellow-400/10 hover:text-yellow-400 lg:hidden sm:h-[60px] sm:w-[60px]"
           >
+
             {mobileMenuOpen ? (
-              <X size={20} />
+              <X
+                size={29}
+                strokeWidth={2}
+              />
             ) : (
-              <Menu size={20} />
+              <Menu
+                size={29}
+                strokeWidth={2}
+              />
             )}
+
           </button>
 
         </div>
       </div>
 
-      {/* ===================================================
+      {/* =================================================
           MOBILE NAVIGATION
-      ==================================================== */}
+      ================================================== */}
 
       {mobileMenuOpen && (
-        <div className="border-t border-white/10 bg-[#0c0c0c] px-4 py-4 lg:hidden">
+        <div className="relative border-t border-yellow-400/15 bg-black/95 px-4 py-4 backdrop-blur-xl lg:hidden">
 
           <nav className="mx-auto flex max-w-7xl flex-col gap-2">
 
@@ -495,13 +697,35 @@ export default function Navbar() {
                     onClick={() =>
                       handleNavigation(item)
                     }
-                    className={`rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+                    className={`rounded-xl border px-4 py-3 text-left text-sm font-semibold transition ${
                       isActive
-                        ? "bg-yellow-400 text-black"
-                        : "text-zinc-300 hover:bg-white/5"
+                        ? "border-yellow-400/25 bg-yellow-400 text-black shadow-[0_0_18px_rgba(250,204,21,0.12)]"
+                        : "border-white/5 text-zinc-300 hover:border-yellow-400/15 hover:bg-yellow-400/5 hover:text-yellow-400"
                     }`}
                   >
-                    {item}
+
+                    <span className="flex items-center justify-between">
+                      <span>
+                        {item}
+                      </span>
+
+                      {/* PENDING PAYMENT BADGE */}
+
+                      {item === "Payments" &&
+                        userType !== "superadmin" &&
+                        pendingPaymentCount > 0 && (
+                          <span
+                            className={`flex min-w-[21px] h-[21px] items-center justify-center rounded-full px-1.5 text-[10px] font-black ${
+                              isActive
+                                ? "bg-black/10 text-black"
+                                : "bg-yellow-400 text-black"
+                            }`}
+                          >
+                            {pendingPaymentCount}
+                          </span>
+                        )}
+                    </span>
+
                   </button>
                 );
               },
@@ -518,16 +742,22 @@ export default function Navbar() {
               }
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
             >
-              <LogOut size={18} />
+
+              <LogOut
+                size={18}
+              />
 
               <span>
                 Logout
               </span>
+
             </button>
 
           </nav>
+
         </div>
       )}
+
     </header>
   );
 }
