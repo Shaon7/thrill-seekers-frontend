@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -104,73 +106,345 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#05070d] flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <main className="relative min-h-screen overflow-hidden bg-[#060606] text-white flex items-center justify-center px-4 py-10">
 
-        {/* Logo / Club Name */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20 mb-5">
-            <span className="text-2xl font-black text-white">
-              TS
-            </span>
-          </div>
+      {/* ==================================================
+          ANIMATED BACKGROUND
+      ================================================== */}
 
-          <h1 className="text-3xl font-black tracking-widest text-white">
-            THRILL SEEKERS
-          </h1>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
 
-          <p className="text-gray-500 mt-2 text-sm">
+        {/* Top yellow glow */}
+        <motion.div
+          className="absolute top-[-180px] left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-yellow-400/10 blur-[120px]"
+          animate={{
+            scale: [1, 1.12, 1],
+            opacity: [0.3, 0.55, 0.3],
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Left cyan glow */}
+        <motion.div
+          className="absolute left-[-180px] top-1/3 w-[350px] h-[350px] rounded-full bg-cyan-400/10 blur-[110px]"
+          animate={{
+            x: [0, 45, 0],
+            y: [0, -30, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Right yellow glow */}
+        <motion.div
+          className="absolute right-[-180px] bottom-1/4 w-[350px] h-[350px] rounded-full bg-yellow-400/10 blur-[110px]"
+          animate={{
+            x: [0, -45, 0],
+            y: [0, 30, 0],
+            scale: [1, 1.08, 1],
+          }}
+          transition={{
+            duration: 9,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+
+        {/* Grid */}
+        <div
+          className="absolute inset-0 opacity-[0.035]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+            backgroundSize: "45px 45px",
+          }}
+        />
+      </div>
+
+      {/* ==================================================
+          MAIN CONTENT
+      ================================================== */}
+
+      <div className="relative z-10 w-full max-w-md">
+
+        {/* ==================================================
+            BRAND
+        ================================================== */}
+
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: -25,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.7,
+            ease: "easeOut",
+          }}
+          className="text-center mb-8"
+        >
+
+          {/* Logo */}
+          <motion.div
+            animate={{
+              y: [0, -6, 0],
+              rotate: [0, 1.5, 0, -1.5, 0],
+              scale: [1, 1.03, 1],
+            }}
+            transition={{
+              duration: 5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            className="relative mx-auto mb-5 w-20 h-20"
+          >
+            {/* Animated glow behind logo */}
+            <motion.div
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.2, 0.45, 0.2],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+              className="absolute inset-0 rounded-3xl bg-yellow-400/20 blur-xl"
+            />
+
+            {/* Logo box */}
+            <div className="relative w-full h-full rounded-3xl border border-yellow-400/30 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black flex items-center justify-center shadow-2xl shadow-yellow-400/10 overflow-hidden">
+
+              {/* Small animated shine */}
+              <motion.div
+                className="absolute inset-y-0 -left-12 w-10 bg-white/10 skew-x-[-20deg]"
+                animate={{
+                  x: ["0%", "500%"],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  repeatDelay: 3,
+                  ease: "easeInOut",
+                }}
+              />
+
+              <Image
+                src="/icon.png"
+                alt="Thrill Seekers"
+                width={58}
+                height={58}
+                priority
+                className="relative z-10 object-contain"
+              />
+            </div>
+          </motion.div>
+
+          {/* Animated Club Name */}
+          <motion.h1
+            initial={{
+              opacity: 0,
+              y: 15,
+            }}
+            animate={{
+              opacity: 1,
+              y: 0,
+            }}
+            transition={{
+              delay: 0.1,
+              duration: 0.6,
+            }}
+            className="text-3xl sm:text-4xl font-black tracking-tight"
+          >
+            <motion.span
+              animate={{
+                textShadow: [
+                  "0 0 0px rgba(250,204,21,0)",
+                  "0 0 18px rgba(250,204,21,0.35)",
+                  "0 0 0px rgba(250,204,21,0)",
+                ],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              THRILL
+            </motion.span>{" "}
+
+            <motion.span
+              className="text-yellow-400 inline-block"
+              animate={{
+                y: [0, -2, 0, 2, 0],
+                letterSpacing: [
+                  "0em",
+                  "0.025em",
+                  "0em",
+                ],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            >
+              SEEKERS
+            </motion.span>
+          </motion.h1>
+
+          <motion.p
+            initial={{
+              opacity: 0,
+            }}
+            animate={{
+              opacity: 1,
+            }}
+            transition={{
+              delay: 0.35,
+              duration: 0.6,
+            }}
+            className="text-zinc-500 mt-2 text-sm"
+          >
             eFootball Club Portal
-          </p>
-        </div>
+          </motion.p>
 
-        {/* Login Card */}
-        <div className="bg-[#0c1019] border border-white/10 rounded-3xl p-7 sm:p-8 shadow-2xl">
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <div className="h-px w-10 bg-white/10" />
+
+            <span className="text-[10px] uppercase tracking-[0.3em] text-zinc-600">
+              Welcome back
+            </span>
+
+            <div className="h-px w-10 bg-white/10" />
+          </div>
+        </motion.div>
+
+        {/* ==================================================
+            LOGIN CARD
+        ================================================== */}
+
+        <motion.div
+          initial={{
+            opacity: 0,
+            y: 35,
+            scale: 0.97,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+            scale: 1,
+          }}
+          transition={{
+            duration: 0.7,
+            delay: 0.15,
+            ease: [0.22, 1, 0.36, 1],
+          }}
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900/95 via-zinc-950/95 to-black/95 p-6 sm:p-8 shadow-2xl shadow-black/50 backdrop-blur-xl"
+        >
+
+          {/* Top yellow glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-20 bg-yellow-400/10 blur-3xl pointer-events-none" />
+
+          {/* Top border accent */}
+          <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-yellow-400/40 to-transparent" />
 
           {/* Heading */}
-          <div className="mb-7">
+          <div className="relative mb-7">
             <h2 className="text-2xl font-bold text-white">
               Welcome back, Champion
             </h2>
 
-            <p className="text-gray-500 text-sm mt-2">
+            <p className="text-zinc-500 text-sm mt-2">
               Login to access your club account
             </p>
           </div>
 
-          {/* Error Message */}
+          {/* ==================================================
+              ERROR MESSAGE
+          ================================================== */}
+
           {error && (
-            <div className="mb-5 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {error}
-            </div>
+            <motion.div
+              initial={{
+                opacity: 0,
+                y: -8,
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+              }}
+              className="mb-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3"
+            >
+              <div className="flex items-start gap-3">
+                <div className="mt-1.5 h-2 w-2 rounded-full bg-red-400 shadow-lg shadow-red-400/40" />
+
+                <p className="text-sm text-red-400 leading-5">
+                  {error}
+                </p>
+              </div>
+            </motion.div>
           )}
 
-          {/* Email / User ID */}
+          {/* ==================================================
+              EMAIL / USER ID
+          ================================================== */}
+
           <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               Email / User ID
             </label>
 
-            <input
-              type="text"
-              value={login}
-              onChange={(e) =>
-                setLogin(e.target.value)
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleLogin();
+            <div className="relative">
+              <input
+                type="text"
+                value={login}
+                onChange={(e) =>
+                  setLogin(e.target.value)
                 }
-              }}
-              placeholder="Enter your email or user ID"
-              autoComplete="username"
-              className="w-full h-12 px-4 rounded-xl bg-[#080b12] border border-white/10 text-white placeholder:text-gray-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-            />
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleLogin();
+                  }
+                }}
+                placeholder="Enter your email or user ID"
+                autoComplete="username"
+                className="w-full h-12 px-4 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-yellow-400/60 focus:ring-4 focus:ring-yellow-400/5 hover:border-white/20"
+              />
+
+              {login && (
+                <motion.div
+                  initial={{
+                    opacity: 0,
+                    scale: 0,
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                  }}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-yellow-400 shadow-lg shadow-yellow-400/50"
+                />
+              )}
+            </div>
           </div>
 
-          {/* Password */}
+          {/* ==================================================
+              PASSWORD
+          ================================================== */}
+
           <div className="mb-3">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-zinc-300 mb-2">
               Password
             </label>
 
@@ -192,7 +466,7 @@ export default function LoginPage() {
                 }}
                 placeholder="Enter your password"
                 autoComplete="current-password"
-                className="w-full h-12 px-4 pr-16 rounded-xl bg-[#080b12] border border-white/10 text-white placeholder:text-gray-600 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className="w-full h-12 px-4 pr-16 rounded-xl bg-black/40 border border-white/10 text-white placeholder:text-zinc-600 outline-none transition-all duration-200 focus:border-yellow-400/60 focus:ring-4 focus:ring-yellow-400/5 hover:border-white/20"
               />
 
               <button
@@ -200,7 +474,7 @@ export default function LoginPage() {
                 onClick={() =>
                   setShowPassword(!showPassword)
                 }
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-yellow-400 hover:text-yellow-300 transition"
               >
                 {showPassword
                   ? "Hide"
@@ -209,54 +483,122 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Forgot Password */}
+          {/* ==================================================
+              FORGOT PASSWORD
+          ================================================== */}
+
           <div className="flex justify-end mb-6">
             <a
               href="/forgot-password"
-              className="text-sm text-blue-400 hover:text-blue-300 transition"
+              className="text-sm text-zinc-500 hover:text-yellow-400 transition-colors"
             >
               Forgot password?
             </a>
           </div>
 
-          {/* Login Button */}
-          <button
+          {/* ==================================================
+              LOGIN BUTTON
+          ================================================== */}
+
+          <motion.button
             type="button"
             onClick={handleLogin}
             disabled={loading}
-            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white font-bold tracking-wide transition shadow-lg shadow-blue-600/20"
+            whileHover={{
+              scale: loading ? 1 : 1.01,
+            }}
+            whileTap={{
+              scale: loading ? 1 : 0.985,
+            }}
+            className="group relative overflow-hidden w-full h-12 rounded-xl bg-yellow-400 hover:bg-yellow-300 disabled:bg-yellow-400/50 disabled:cursor-not-allowed text-black font-black tracking-wide transition shadow-xl shadow-yellow-400/10"
           >
-            {loading
-              ? "LOGGING IN..."
-              : "LOGIN"}
-          </button>
+            {/* Animated button shine */}
+            {!loading && (
+              <motion.div
+                className="absolute inset-y-0 -left-20 w-16 bg-white/30 skew-x-[-20deg]"
+                animate={{
+                  x: ["0%", "700%"],
+                }}
+                transition={{
+                  duration: 2.8,
+                  repeat: Infinity,
+                  repeatDelay: 2,
+                  ease: "easeInOut",
+                }}
+              />
+            )}
 
-          {/* Divider */}
+            <span className="relative z-10">
+              {loading
+                ? "LOGGING IN..."
+                : "LOGIN"}
+            </span>
+          </motion.button>
+
+          {/* ==================================================
+              DIVIDER
+          ================================================== */}
+
           <div className="flex items-center gap-4 my-7">
             <div className="h-px bg-white/10 flex-1" />
 
+            <div className="flex items-center gap-2">
+              <div className="h-1 w-1 rounded-full bg-yellow-400/60" />
+
+              <span className="text-[10px] uppercase tracking-[0.25em] text-zinc-700">
+                THRILL SEEKERS FC
+              </span>
+
+              <div className="h-1 w-1 rounded-full bg-yellow-400/60" />
+            </div>
 
             <div className="h-px bg-white/10 flex-1" />
           </div>
 
+          {/* ==================================================
+              REGISTER
+          ================================================== */}
 
-          {/* Register */}
-          <p className="text-center text-sm text-gray-500 mt-7">
+          <motion.p
+            initial={{
+              opacity: 0,
+            }}
+            animate={{
+              opacity: 1,
+            }}
+            transition={{
+              delay: 0.7,
+            }}
+            className="text-center text-sm text-zinc-500"
+          >
             Don't have an account?{" "}
             <a
               href="/register"
-              className="text-blue-400 hover:text-blue-300 font-semibold transition"
+              className="text-yellow-400 hover:text-yellow-300 font-semibold transition-colors"
             >
               Register
             </a>
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-700 mt-6">
+        {/* ==================================================
+            FOOTER
+        ================================================== */}
+
+        <motion.p
+          initial={{
+            opacity: 0,
+          }}
+          animate={{
+            opacity: 1,
+          }}
+          transition={{
+            delay: 0.9,
+          }}
+          className="text-center text-xs text-zinc-700 mt-6"
+        >
           © 2026 Thrill Seekers FC. All rights reserved.
-        </p>
-
+        </motion.p>
       </div>
     </main>
   );
