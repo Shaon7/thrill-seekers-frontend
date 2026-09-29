@@ -182,7 +182,7 @@ export default function Home() {
               icon={<Swords size={21} />}
               label="Payment"
               value="Manage"
-              href="/Payments"
+              href="/payments"
             />
 
           </div>
