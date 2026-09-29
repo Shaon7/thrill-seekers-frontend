@@ -174,15 +174,15 @@ export default function Home() {
             <OverviewCard
               icon={<DollarSign size={21} />}
               label="Payment"
-              value="Manage"
+              value="Add Payment"
               href="/payment-management"
             />
 
             <OverviewCard
               icon={<Swords size={21} />}
-              label="Matches"
+              label="Payment"
               value="Manage"
-              href="/matches"
+              href="/Payments"
             />
 
           </div>
@@ -233,7 +233,7 @@ export default function Home() {
               icon={<GitBranch size={24} />}
               title="Divisions"
               description="Manage competition divisions and player groups."
-              href="/divisions"
+              href="/division"
             />
 
             <ManagementCard
