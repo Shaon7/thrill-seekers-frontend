@@ -546,7 +546,7 @@ export default function MatchesPage() {
   const doc = new jsPDF({
     orientation: "landscape",
     unit: "mm",
-    format: [260, 185],
+    format: [260, 205],
   });
 
   const pageWidth =
@@ -772,7 +772,7 @@ export default function MatchesPage() {
   // ===================================================
 
   autoTable(doc, {
-    startY: 76,
+    startY: 74,
 
     margin: {
       left: 10,
@@ -798,14 +798,14 @@ export default function MatchesPage() {
     styles: {
       font: "helvetica",
       fontSize: 8.8,
-      cellPadding: 3.0,
+      cellPadding: 2.5,
       valign: "middle",
       lineWidth: 0.2,
       lineColor: lightGray,
       textColor: black,
       fillColor: white,
       overflow: "ellipsize",
-      minCellHeight: 8.5,
+      minCellHeight: 8.0,
     },
 
     headStyles: {
