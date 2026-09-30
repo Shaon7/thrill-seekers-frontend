@@ -504,11 +504,31 @@ export default function MatchesPage() {
     );
   };
 
+
+  //fixture feint logo
+
+  const loadFixtureLogo =
+  (): Promise<HTMLImageElement | null> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+
+      img.src = "/icon.png";
+
+      img.onload = () => {
+        resolve(img);
+      };
+
+      img.onerror = () => {
+        resolve(null);
+      };
+    });
+  };
+
   // =====================================================
   // DOWNLOAD ROUND FIXTURE
   // =====================================================
 
-    const downloadRoundFixture = (
+  const downloadRoundFixture = async (
   round: number,
   roundMatches: Match[],
 ) => {
@@ -519,50 +539,179 @@ export default function MatchesPage() {
     return;
   }
 
-  const doc = new jsPDF();
+  // ===================================================
+  // PDF
+  // ===================================================
+
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
+
+  const pageWidth =
+    doc.internal.pageSize.getWidth();
+
+  const pageHeight =
+    doc.internal.pageSize.getHeight();
 
   // ===================================================
   // COLORS
   // ===================================================
 
-  const gold = [255, 204, 0];
-  const dark = [10, 10, 10];
-  const darkGray = [25, 25, 25];
-  const gray = [90, 90, 90];
-  const lightGray = [235, 235, 235];
-  const white = [255, 255, 255];
+  const magenta = [
+    236,
+    0,
+    180,
+  ];
+
+  const electricPink = [
+    255,
+    30,
+    190,
+  ];
+
+  const navy = [
+    12,
+    18,
+    58,
+  ];
+
+  const deepNavy = [
+    7,
+    11,
+    38,
+  ];
+
+  const darkPurple = [
+    20,
+    16,
+    58,
+  ];
+
+  const white: [number, number, number]  = [
+    255,
+    255,
+    255,
+  ];
+  const softWhite = [
+    225,
+    225,
+    240,
+  ];
+
+  const mutedWhite = [
+    165,
+    165,
+    190,
+  ];
 
   // ===================================================
-  // PDF HEADER BACKGROUND
+  // BACKGROUND GRADIENT
+  // MAGENTA -> NAVY
   // ===================================================
 
-  doc.setFillColor(
-    dark[0],
-    dark[1],
-    dark[2],
+  const gradientSteps = 120;
+
+  for (
+    let i = 0;
+    i < gradientSteps;
+    i++
+  ) {
+    const position =
+      i /
+      (gradientSteps - 1);
+
+    const r =
+      Math.round(
+        electricPink[0] +
+          (navy[0] -
+            electricPink[0]) *
+            position,
+      );
+
+    const g =
+      Math.round(
+        electricPink[1] +
+          (navy[1] -
+            electricPink[1]) *
+            position,
+      );
+
+    const b =
+      Math.round(
+        electricPink[2] +
+          (navy[2] -
+            electricPink[2]) *
+            position,
+      );
+
+    doc.setFillColor(
+      r,
+      g,
+      b,
+    );
+
+    doc.rect(
+      (pageWidth /
+        gradientSteps) *
+        i,
+      0,
+      pageWidth /
+        gradientSteps +
+        0.5,
+      pageHeight,
+      "F",
+    );
+  }
+
+  // ===================================================
+  // DARK TOP HEADER
+  // ===================================================
+
+  doc.saveGraphicsState();
+
+  doc.setGState(
+    doc.GState({
+      opacity: 0.82,
+    }),
   );
 
-  doc.rect(
-    0,
-    0,
-    210,
-    48,
+  doc.setFillColor(
+    deepNavy[0],
+    deepNavy[1],
+    deepNavy[2],
+  );
+
+  doc.roundedRect(
+    10,
+    8,
+    pageWidth - 20,
+    38,
+    5,
+    5,
     "F",
   );
 
-  // Gold top line
+  doc.restoreGraphicsState();
+
+  // ===================================================
+  // TOP MAGENTA LINE
+  // ===================================================
 
   doc.setFillColor(
-    gold[0],
-    gold[1],
-    gold[2],
+    magenta[0],
+    magenta[1],
+    magenta[2],
   );
 
-  doc.rect(
-    0,
-    0,
-    210,
-    3,
+  doc.roundedRect(
+    10,
+    8,
+    pageWidth - 20,
+    2,
+    1,
+    1,
     "F",
   );
 
@@ -575,25 +724,25 @@ export default function MatchesPage() {
     "bold",
   );
 
-  doc.setFontSize(22);
+  doc.setFontSize(21);
 
   doc.setTextColor(
-    gold[0],
-    gold[1],
-    gold[2],
+    white[0],
+    white[1],
+    white[2],
   );
 
   doc.text(
     "THRILL SEEKERS",
-    105,
-    17,
+    pageWidth / 2,
+    18,
     {
       align: "center",
     },
   );
 
   // ===================================================
-  // SUBTITLE
+  // CLUB SUBTITLE
   // ===================================================
 
   doc.setFont(
@@ -601,17 +750,17 @@ export default function MatchesPage() {
     "normal",
   );
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
 
   doc.setTextColor(
-    210,
-    210,
-    210,
+    mutedWhite[0],
+    mutedWhite[1],
+    mutedWhite[2],
   );
 
   doc.text(
     "EFOOTBALL CLUB",
-    105,
+    pageWidth / 2,
     24,
     {
       align: "center",
@@ -627,19 +776,19 @@ export default function MatchesPage() {
     "bold",
   );
 
-  doc.setFontSize(14);
+  doc.setFontSize(13);
 
   doc.setTextColor(
-    white[0],
-    white[1],
-    white[2],
+    electricPink[0],
+    electricPink[1],
+    electricPink[2],
   );
 
   doc.text(
     division.name ||
       `Division ${division.divisionNumber}`,
-    105,
-    35,
+    pageWidth / 2,
+    33,
     {
       align: "center",
     },
@@ -654,80 +803,132 @@ export default function MatchesPage() {
     "normal",
   );
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
 
   doc.setTextColor(
-    180,
-    180,
-    180,
+    softWhite[0],
+    softWhite[1],
+    softWhite[2],
   );
 
   doc.text(
     `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
-    105,
-    42,
+    pageWidth / 2,
+    40,
     {
       align: "center",
     },
   );
 
   // ===================================================
-  // ROUND SECTION
+  // MATCH FIXTURE PILL
   // ===================================================
 
   doc.setFillColor(
-    248,
-    248,
-    248,
+    magenta[0],
+    magenta[1],
+    magenta[2],
   );
 
   doc.roundedRect(
-    14,
-    56,
-    182,
-    31,
-    4,
-    4,
+    pageWidth - 52,
+    15,
+    38,
+    9,
+    4.5,
+    4.5,
     "F",
   );
-
-  // Gold vertical accent
-
-  doc.setFillColor(
-    gold[0],
-    gold[1],
-    gold[2],
-  );
-
-  doc.roundedRect(
-    14,
-    56,
-    4,
-    31,
-    2,
-    2,
-    "F",
-  );
-
-  // Round title
 
   doc.setFont(
     "helvetica",
     "bold",
   );
 
-  doc.setFontSize(15);
+  doc.setFontSize(7);
 
   doc.setTextColor(
-    dark[0],
-    dark[1],
-    dark[2],
+    white[0],
+    white[1],
+    white[2],
+  );
+
+  doc.text(
+    "MATCH FIXTURE",
+    pageWidth - 33,
+    21,
+    {
+      align: "center",
+    },
+  );
+
+  // ===================================================
+  // ROUND SUMMARY
+  // ===================================================
+
+  doc.saveGraphicsState();
+
+  doc.setGState(
+    doc.GState({
+      opacity: 0.88,
+    }),
+  );
+
+  doc.setFillColor(
+    deepNavy[0],
+    deepNavy[1],
+    deepNavy[2],
+  );
+
+  doc.roundedRect(
+    14,
+    52,
+    pageWidth - 28,
+    22,
+    4,
+    4,
+    "F",
+  );
+
+  doc.restoreGraphicsState();
+
+  // Left magenta accent
+
+  doc.setFillColor(
+    magenta[0],
+    magenta[1],
+    magenta[2],
+  );
+
+  doc.roundedRect(
+    14,
+    52,
+    4,
+    22,
+    2,
+    2,
+    "F",
+  );
+
+  // Round
+
+  doc.setFont(
+    "helvetica",
+    "bold",
+  );
+
+  doc.setFontSize(13);
+
+  doc.setTextColor(
+    white[0],
+    white[1],
+    white[2],
   );
 
   doc.text(
     `ROUND ${round}`,
     24,
-    67,
+    65,
   );
 
   // Date
@@ -737,26 +938,28 @@ export default function MatchesPage() {
     "normal",
   );
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
 
   doc.setTextColor(
-    gray[0],
-    gray[1],
-    gray[2],
+    softWhite[0],
+    softWhite[1],
+    softWhite[2],
   );
 
   doc.text(
     `Date: ${formatRoundDate(roundMatches)}`,
-    24,
-    75,
+    82,
+    61,
   );
 
   // Deadline
 
   doc.text(
-    `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
-    24,
+    `Deadline: ${formatDeadline(
+      roundMatches[0].deadline,
+    )}`,
     82,
+    68,
   );
 
   // Total matches
@@ -767,22 +970,50 @@ export default function MatchesPage() {
   );
 
   doc.setTextColor(
-    dark[0],
-    dark[1],
-    dark[2],
+    electricPink[0],
+    electricPink[1],
+    electricPink[2],
   );
 
   doc.text(
-    `Total Matches: ${roundMatches.length}`,
-    174,
-    75,
+    `TOTAL MATCHES  ${roundMatches.length}`,
+    pageWidth - 24,
+    65,
     {
       align: "right",
     },
   );
 
   // ===================================================
-  // MATCH TABLE
+  // LOAD WATERMARK LOGO
+  // ===================================================
+
+  const fixtureLogo =
+    await loadFixtureLogo();
+
+  if (fixtureLogo) {
+    doc.saveGraphicsState();
+
+    doc.setGState(
+       doc.GState({
+        opacity: 0.055,
+      }),
+    );
+
+    doc.addImage(
+      fixtureLogo,
+      "PNG",
+      102,
+      88,
+      92,
+      92,
+    );
+
+    doc.restoreGraphicsState();
+  }
+
+  // ===================================================
+  // MATCH DATA
   // ===================================================
 
   const tableRows =
@@ -798,6 +1029,17 @@ export default function MatchesPage() {
             match.awayPlayerId,
           );
 
+        const formattedStatus =
+          match.status
+            ? match.status
+                .toLowerCase()
+                .replace(
+                  /^./,
+                  (letter) =>
+                    letter.toUpperCase(),
+                )
+            : "";
+
         return [
           String(index + 1),
           match.matchId,
@@ -809,119 +1051,221 @@ export default function MatchesPage() {
           formatDeadline(
             match.deadline,
           ),
-          match.status,
+          formattedStatus,
         ];
       },
     );
 
+  // ===================================================
+  // TABLE
+  // ===================================================
+
   autoTable(doc, {
-    startY: 94,
+    startY: 81,
+
+    margin: {
+      left: 14,
+      right: 14,
+    },
 
     head: [
       [
         "#",
-        "Match ID",
-        "Home Player",
+        "MATCH ID",
+        "HOME PLAYER",
         "",
-        "Away Player",
-        "Deadline",
-        "Status",
+        "AWAY PLAYER",
+        "DATE & TIME",
+        "STATUS",
       ],
     ],
 
     body: tableRows,
 
-    theme: "grid",
+    theme: "plain",
 
     styles: {
-      fontSize: 8.5,
-      cellPadding: 3.5,
+      font: "helvetica",
+      fontSize: 8.2,
+      cellPadding: 2.8,
       valign: "middle",
-      lineColor: [210, 210, 210],
-      lineWidth: 0.3,
-      textColor: [30, 30, 30],
+      lineWidth: 0,
+      textColor: white,
+      fillColor: false,
+      overflow: "ellipsize",
     },
 
     headStyles: {
-      fontSize: 8,
       fontStyle: "bold",
-
-      fillColor: [
-        dark[0],
-        dark[1],
-        dark[2],
-      ],
-
-      textColor: [
-        gold[0],
-        gold[1],
-        gold[2],
-      ],
-
-      lineColor: [
-        dark[0],
-        dark[1],
-        dark[2],
-      ],
-
-      cellPadding: 4,
-    },
-
-    alternateRowStyles: {
-      fillColor: [
-        248,
-        248,
-        248,
-      ],
+      fontSize: 7.5,
+      textColor: white,
+      fillColor: false,
+      halign: "center",
+      valign: "middle",
+      cellPadding: 3,
     },
 
     columnStyles: {
       0: {
+        cellWidth: 11,
         halign: "center",
-        cellWidth: 10,
         fontStyle: "bold",
       },
 
       1: {
-        cellWidth: 23,
+        cellWidth: 30,
         fontStyle: "bold",
       },
 
       2: {
-        cellWidth: 40,
+        cellWidth: 58,
       },
 
       3: {
+        cellWidth: 16,
         halign: "center",
-        cellWidth: 12,
         fontStyle: "bold",
-        textColor: [
-          140,
-          110,
-          0,
-        ],
       },
 
       4: {
-        cellWidth: 40,
+        cellWidth: 58,
       },
 
       5: {
-        cellWidth: 40,
+        cellWidth: 55,
+        halign: "center",
       },
 
       6: {
-        cellWidth: 25,
+        cellWidth: 38,
         halign: "center",
         fontStyle: "bold",
+        overflow: "ellipsize",
       },
     },
+
+    // =================================================
+    // CUSTOM PILLS
+    // =================================================
+
+    willDrawCell: (
+      data,
+    ) => {
+      // -----------------------------------------------
+      // HEADER PILLS
+      // -----------------------------------------------
+
+      if (
+        data.section === "head"
+      ) {
+        doc.setFillColor(
+          magenta[0],
+          magenta[1],
+          magenta[2],
+        );
+
+        doc.roundedRect(
+          data.cell.x + 1,
+          data.cell.y + 1,
+          data.cell.width - 2,
+          data.cell.height - 2,
+          3,
+          3,
+          "F",
+        );
+
+        return;
+      }
+
+      // -----------------------------------------------
+      // ROW CONTAINER
+      // -----------------------------------------------
+
+      if (
+        data.section === "body" &&
+        data.column.index === 0
+      ) {
+        const tableLeft = 14;
+
+        const tableWidth =
+          pageWidth - 28;
+
+        doc.saveGraphicsState();
+
+        doc.setGState(
+           doc.GState({
+            opacity: 0.78,
+          }),
+        );
+
+        doc.setFillColor(
+          darkPurple[0],
+          darkPurple[1],
+          darkPurple[2],
+        );
+
+        doc.roundedRect(
+          tableLeft + 1,
+          data.cell.y + 1,
+          tableWidth - 2,
+          data.row.height - 2,
+          4,
+          4,
+          "F",
+        );
+
+        doc.restoreGraphicsState();
+      }
+
+      // -----------------------------------------------
+      // VS PILL
+      // -----------------------------------------------
+
+      if (
+        data.section === "body" &&
+        data.column.index === 3
+      ) {
+        doc.saveGraphicsState();
+
+        doc.setGState(
+           doc.GState({
+            opacity: 0.95,
+          }),
+        );
+
+        doc.setFillColor(
+          255,
+          40,
+          190,
+        );
+
+        doc.roundedRect(
+          data.cell.x + 3,
+          data.cell.y + 2,
+          data.cell.width - 6,
+          data.cell.height - 4,
+          3,
+          3,
+          "F",
+        );
+
+        doc.restoreGraphicsState();
+
+        data.cell.styles.textColor = [
+          255,
+          255,
+          255,
+        ];
+      }
+    },
+
+    // =================================================
+    // STATUS COLORS
+    // =================================================
 
     didParseCell: (
       data,
     ) => {
-      // STATUS DESIGN
-
       if (
         data.section === "body" &&
         data.column.index === 6
@@ -932,74 +1276,54 @@ export default function MatchesPage() {
           ).toUpperCase();
 
         if (
-          status === "COMPLETED"
-        ) {
-          data.cell.styles.textColor = [
-            22,
-            140,
-            70,
-          ];
-
-          data.cell.styles.fontStyle =
-            "bold";
-        }
-
-        if (
           status === "SCHEDULED"
         ) {
           data.cell.styles.textColor = [
-            180,
-            130,
-            0,
+            255,
+            210,
+            235,
           ];
+        }
 
-          data.cell.styles.fontStyle =
-            "bold";
+        if (
+          status === "COMPLETED"
+        ) {
+          data.cell.styles.textColor = [
+            120,
+            255,
+            190,
+          ];
         }
 
         if (
           status === "RESCHEDULED"
         ) {
           data.cell.styles.textColor = [
-            210,
-            110,
-            20,
+            255,
+            200,
+            120,
           ];
-
-          data.cell.styles.fontStyle =
-            "bold";
         }
 
         if (
           status === "CANCELLED"
         ) {
           data.cell.styles.textColor = [
-            190,
-            40,
-            40,
+            255,
+            120,
+            140,
           ];
-
-          data.cell.styles.fontStyle =
-            "bold";
         }
       }
 
-      // VS DESIGN
-
       if (
         data.section === "body" &&
-        data.column.index === 3
+        data.column.index === 1
       ) {
-        data.cell.styles.fillColor = [
-          255,
-          248,
-          220,
-        ];
-
         data.cell.styles.textColor = [
-          150,
+          255,
           110,
-          0,
+          225,
         ];
       }
     },
@@ -1019,22 +1343,26 @@ export default function MatchesPage() {
   ) {
     doc.setPage(page);
 
-    // Footer line
+    // Footer separator
 
     doc.setDrawColor(
-      220,
-      220,
-      220,
+      130,
+      90,
+      155,
+    );
+
+    doc.setLineWidth(
+      0.4,
     );
 
     doc.line(
       14,
-      281,
       196,
-      281,
+      pageWidth - 14,
+      196,
     );
 
-    // Footer club name
+    // Left
 
     doc.setFont(
       "helvetica",
@@ -1044,59 +1372,65 @@ export default function MatchesPage() {
     doc.setFontSize(7.5);
 
     doc.setTextColor(
-      90,
-      90,
-      90,
+      white[0],
+      white[1],
+      white[2],
     );
 
     doc.text(
       "THRILL SEEKERS",
       14,
-      288,
+      202,
     );
 
-    // Footer description
+    // Center
 
     doc.setFont(
       "helvetica",
       "normal",
     );
 
-    doc.setFontSize(7.5);
+    doc.setTextColor(
+      softWhite[0],
+      softWhite[1],
+      softWhite[2],
+    );
 
     doc.text(
-      `Efootball Club • Round ${round}`,
-      105,
-      288,
+      `Efootball Club  •  Round ${round}`,
+      pageWidth / 2,
+      202,
       {
         align: "center",
       },
     );
 
-    // Page number
+    // Right
 
     doc.text(
       `Page ${page} of ${pageCount}`,
-      196,
-      288,
+      pageWidth - 14,
+      202,
       {
         align: "right",
       },
     );
 
-    // Small gold footer accent
+    // Bottom magenta line
 
     doc.setFillColor(
-      gold[0],
-      gold[1],
-      gold[2],
+      magenta[0],
+      magenta[1],
+      magenta[2],
     );
 
-    doc.rect(
+    doc.roundedRect(
       14,
-      292,
-      182,
-      1,
+      206,
+      pageWidth - 28,
+      1.2,
+      0.6,
+      0.6,
       "F",
     );
   }
