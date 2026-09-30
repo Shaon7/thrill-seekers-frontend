@@ -701,15 +701,9 @@ export default function MatchesPage() {
   doc.setTextColor(...gray);
 
   doc.text(
-    `Date: ${formatRoundDate(roundMatches)}`,
-    70,
-    62,
-  );
-
-  doc.text(
     `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
     70,
-    69,
+    65,
   );
 
   doc.setFont("helvetica", "bold");
@@ -728,27 +722,6 @@ export default function MatchesPage() {
   // ===================================================
 
   const fixtureLogo = await loadFixtureLogo();
-
-  if (fixtureLogo) {
-    doc.saveGraphicsState();
-
-    doc.setGState(
-      doc.GState({
-        opacity: 0.035,
-      }),
-    );
-
-    doc.addImage(
-      fixtureLogo,
-      "PNG",
-      105,
-      95,
-      85,
-      85,
-    );
-
-    doc.restoreGraphicsState();
-  }
 
   // ===================================================
   // MATCH DATA
@@ -810,10 +783,10 @@ export default function MatchesPage() {
       [
         "#",
         "MATCH ID",
-        "HOME PLAYER",
+        "HOME",
         "",
-        "AWAY PLAYER",
-        "DATE & TIME",
+        "AWAY",
+        "DEADLINE",
         "STATUS",
       ],
     ],
@@ -851,22 +824,28 @@ export default function MatchesPage() {
       },
 
       1: {
-        cellWidth: 30,
+        cellWidth: 28,
         fontStyle: "bold",
       },
 
       2: {
-        cellWidth: 58,
+        cellWidth: 45,
+        fontSize: 7.4,
+        fontStyle: "bold",
+        overflow: "ellipsize",
       },
 
       3: {
-        cellWidth: 16,
+        cellWidth: 13,
         halign: "center",
         fontStyle: "bold",
       },
 
       4: {
-        cellWidth: 58,
+        cellWidth: 45,
+        fontSize: 7.4,
+        fontStyle: "bold",
+        overflow: "ellipsize",
       },
 
       5: {
@@ -943,6 +922,26 @@ export default function MatchesPage() {
           tableLeft + tableWidth - 2,
           data.cell.y + data.row.height,
         );
+
+        // Subtle club logo watermark inside the fixture table.
+        // Draw it once per table/page before the remaining cells render.
+        if (fixtureLogo && data.row.index === 0) {
+          doc.saveGraphicsState();
+          doc.setGState(
+            doc.GState({
+              opacity: 0.045,
+            }),
+          );
+          doc.addImage(
+            fixtureLogo,
+            "PNG",
+            pageWidth / 2 - 18,
+            data.cell.y + 1,
+            36,
+            36,
+          );
+          doc.restoreGraphicsState();
+        }
       }
 
       // Match number badge
