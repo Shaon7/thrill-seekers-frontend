@@ -508,294 +508,621 @@ export default function MatchesPage() {
   // DOWNLOAD ROUND FIXTURE
   // =====================================================
 
-  const downloadRoundFixture = (
-    round: number,
-    roundMatches: Match[],
-  ) => {
-    if (
-      !division ||
-      roundMatches.length === 0
-    ) {
-      return;
-    }
+    const downloadRoundFixture = (
+  round: number,
+  roundMatches: Match[],
+) => {
+  if (
+    !division ||
+    roundMatches.length === 0
+  ) {
+    return;
+  }
 
-    const doc = new jsPDF();
+  const doc = new jsPDF();
 
-    // ===================================================
-    // PDF HEADER
-    // ===================================================
+  // ===================================================
+  // COLORS
+  // ===================================================
+
+  const gold = [255, 204, 0];
+  const dark = [10, 10, 10];
+  const darkGray = [25, 25, 25];
+  const gray = [90, 90, 90];
+  const lightGray = [235, 235, 235];
+  const white = [255, 255, 255];
+
+  // ===================================================
+  // PDF HEADER BACKGROUND
+  // ===================================================
+
+  doc.setFillColor(
+    dark[0],
+    dark[1],
+    dark[2],
+  );
+
+  doc.rect(
+    0,
+    0,
+    210,
+    48,
+    "F",
+  );
+
+  // Gold top line
+
+  doc.setFillColor(
+    gold[0],
+    gold[1],
+    gold[2],
+  );
+
+  doc.rect(
+    0,
+    0,
+    210,
+    3,
+    "F",
+  );
+
+  // ===================================================
+  // CLUB NAME
+  // ===================================================
+
+  doc.setFont(
+    "helvetica",
+    "bold",
+  );
+
+  doc.setFontSize(22);
+
+  doc.setTextColor(
+    gold[0],
+    gold[1],
+    gold[2],
+  );
+
+  doc.text(
+    "THRILL SEEKERS",
+    105,
+    17,
+    {
+      align: "center",
+    },
+  );
+
+  // ===================================================
+  // SUBTITLE
+  // ===================================================
+
+  doc.setFont(
+    "helvetica",
+    "normal",
+  );
+
+  doc.setFontSize(9);
+
+  doc.setTextColor(
+    210,
+    210,
+    210,
+  );
+
+  doc.text(
+    "EFOOTBALL CLUB",
+    105,
+    24,
+    {
+      align: "center",
+    },
+  );
+
+  // ===================================================
+  // DIVISION NAME
+  // ===================================================
+
+  doc.setFont(
+    "helvetica",
+    "bold",
+  );
+
+  doc.setFontSize(14);
+
+  doc.setTextColor(
+    white[0],
+    white[1],
+    white[2],
+  );
+
+  doc.text(
+    division.name ||
+      `Division ${division.divisionNumber}`,
+    105,
+    35,
+    {
+      align: "center",
+    },
+  );
+
+  // ===================================================
+  // SEASON / PHASE
+  // ===================================================
+
+  doc.setFont(
+    "helvetica",
+    "normal",
+  );
+
+  doc.setFontSize(9);
+
+  doc.setTextColor(
+    180,
+    180,
+    180,
+  );
+
+  doc.text(
+    `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
+    105,
+    42,
+    {
+      align: "center",
+    },
+  );
+
+  // ===================================================
+  // ROUND SECTION
+  // ===================================================
+
+  doc.setFillColor(
+    248,
+    248,
+    248,
+  );
+
+  doc.roundedRect(
+    14,
+    56,
+    182,
+    31,
+    4,
+    4,
+    "F",
+  );
+
+  // Gold vertical accent
+
+  doc.setFillColor(
+    gold[0],
+    gold[1],
+    gold[2],
+  );
+
+  doc.roundedRect(
+    14,
+    56,
+    4,
+    31,
+    2,
+    2,
+    "F",
+  );
+
+  // Round title
+
+  doc.setFont(
+    "helvetica",
+    "bold",
+  );
+
+  doc.setFontSize(15);
+
+  doc.setTextColor(
+    dark[0],
+    dark[1],
+    dark[2],
+  );
+
+  doc.text(
+    `ROUND ${round}`,
+    24,
+    67,
+  );
+
+  // Date
+
+  doc.setFont(
+    "helvetica",
+    "normal",
+  );
+
+  doc.setFontSize(9);
+
+  doc.setTextColor(
+    gray[0],
+    gray[1],
+    gray[2],
+  );
+
+  doc.text(
+    `Date: ${formatRoundDate(roundMatches)}`,
+    24,
+    75,
+  );
+
+  // Deadline
+
+  doc.text(
+    `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
+    24,
+    82,
+  );
+
+  // Total matches
+
+  doc.setFont(
+    "helvetica",
+    "bold",
+  );
+
+  doc.setTextColor(
+    dark[0],
+    dark[1],
+    dark[2],
+  );
+
+  doc.text(
+    `Total Matches: ${roundMatches.length}`,
+    174,
+    75,
+    {
+      align: "right",
+    },
+  );
+
+  // ===================================================
+  // MATCH TABLE
+  // ===================================================
+
+  const tableRows =
+    roundMatches.map(
+      (match, index) => {
+        const homePlayer =
+          getPlayer(
+            match.homePlayerId,
+          );
+
+        const awayPlayer =
+          getPlayer(
+            match.awayPlayerId,
+          );
+
+        return [
+          String(index + 1),
+          match.matchId,
+          homePlayer?.name ||
+            match.homePlayerId,
+          "VS",
+          awayPlayer?.name ||
+            match.awayPlayerId,
+          formatDeadline(
+            match.deadline,
+          ),
+          match.status,
+        ];
+      },
+    );
+
+  autoTable(doc, {
+    startY: 94,
+
+    head: [
+      [
+        "#",
+        "Match ID",
+        "Home Player",
+        "",
+        "Away Player",
+        "Deadline",
+        "Status",
+      ],
+    ],
+
+    body: tableRows,
+
+    theme: "grid",
+
+    styles: {
+      fontSize: 8.5,
+      cellPadding: 3.5,
+      valign: "middle",
+      lineColor: [210, 210, 210],
+      lineWidth: 0.3,
+      textColor: [30, 30, 30],
+    },
+
+    headStyles: {
+      fontSize: 8,
+      fontStyle: "bold",
+
+      fillColor: [
+        dark[0],
+        dark[1],
+        dark[2],
+      ],
+
+      textColor: [
+        gold[0],
+        gold[1],
+        gold[2],
+      ],
+
+      lineColor: [
+        dark[0],
+        dark[1],
+        dark[2],
+      ],
+
+      cellPadding: 4,
+    },
+
+    alternateRowStyles: {
+      fillColor: [
+        248,
+        248,
+        248,
+      ],
+    },
+
+    columnStyles: {
+      0: {
+        halign: "center",
+        cellWidth: 10,
+        fontStyle: "bold",
+      },
+
+      1: {
+        cellWidth: 23,
+        fontStyle: "bold",
+      },
+
+      2: {
+        cellWidth: 40,
+      },
+
+      3: {
+        halign: "center",
+        cellWidth: 12,
+        fontStyle: "bold",
+        textColor: [
+          140,
+          110,
+          0,
+        ],
+      },
+
+      4: {
+        cellWidth: 40,
+      },
+
+      5: {
+        cellWidth: 40,
+      },
+
+      6: {
+        cellWidth: 25,
+        halign: "center",
+        fontStyle: "bold",
+      },
+    },
+
+    didParseCell: (
+      data,
+    ) => {
+      // STATUS DESIGN
+
+      if (
+        data.section === "body" &&
+        data.column.index === 6
+      ) {
+        const status =
+          String(
+            data.cell.raw || "",
+          ).toUpperCase();
+
+        if (
+          status === "COMPLETED"
+        ) {
+          data.cell.styles.textColor = [
+            22,
+            140,
+            70,
+          ];
+
+          data.cell.styles.fontStyle =
+            "bold";
+        }
+
+        if (
+          status === "SCHEDULED"
+        ) {
+          data.cell.styles.textColor = [
+            180,
+            130,
+            0,
+          ];
+
+          data.cell.styles.fontStyle =
+            "bold";
+        }
+
+        if (
+          status === "RESCHEDULED"
+        ) {
+          data.cell.styles.textColor = [
+            210,
+            110,
+            20,
+          ];
+
+          data.cell.styles.fontStyle =
+            "bold";
+        }
+
+        if (
+          status === "CANCELLED"
+        ) {
+          data.cell.styles.textColor = [
+            190,
+            40,
+            40,
+          ];
+
+          data.cell.styles.fontStyle =
+            "bold";
+        }
+      }
+
+      // VS DESIGN
+
+      if (
+        data.section === "body" &&
+        data.column.index === 3
+      ) {
+        data.cell.styles.fillColor = [
+          255,
+          248,
+          220,
+        ];
+
+        data.cell.styles.textColor = [
+          150,
+          110,
+          0,
+        ];
+      }
+    },
+  });
+
+  // ===================================================
+  // FOOTER
+  // ===================================================
+
+  const pageCount =
+    doc.getNumberOfPages();
+
+  for (
+    let page = 1;
+    page <= pageCount;
+    page++
+  ) {
+    doc.setPage(page);
+
+    // Footer line
+
+    doc.setDrawColor(
+      220,
+      220,
+      220,
+    );
+
+    doc.line(
+      14,
+      281,
+      196,
+      281,
+    );
+
+    // Footer club name
 
     doc.setFont(
       "helvetica",
       "bold",
     );
 
-    doc.setFontSize(20);
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      90,
+      90,
+      90,
+    );
 
     doc.text(
       "THRILL SEEKERS",
-      105,
-      18,
-      {
-        align: "center",
-      },
+      14,
+      288,
     );
 
-    doc.setFontSize(11);
+    // Footer description
 
     doc.setFont(
       "helvetica",
       "normal",
     );
 
+    doc.setFontSize(7.5);
+
     doc.text(
-      "EFOOTBALL CLUB",
+      `Efootball Club • Round ${round}`,
       105,
-      25,
+      288,
       {
         align: "center",
       },
     );
 
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(15);
+    // Page number
 
     doc.text(
+      `Page ${page} of ${pageCount}`,
+      196,
+      288,
+      {
+        align: "right",
+      },
+    );
+
+    // Small gold footer accent
+
+    doc.setFillColor(
+      gold[0],
+      gold[1],
+      gold[2],
+    );
+
+    doc.rect(
+      14,
+      292,
+      182,
+      1,
+      "F",
+    );
+  }
+
+  // ===================================================
+  // FILE NAME
+  // ===================================================
+
+  const safeDivisionName =
+    (
       division.name ||
-        `Division ${division.divisionNumber}`,
-      105,
-      36,
-      {
-        align: "center",
-      },
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(10);
-
-    doc.text(
-      `Season ${division.season}-${division.season + 1} • Phase ${division.phase}`,
-      105,
-      44,
-      {
-        align: "center",
-      },
-    );
-
-    // ===================================================
-    // ROUND INFO
-    // ===================================================
-
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(14);
-
-    doc.text(
-      `Round ${round}`,
-      14,
-      58,
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(10);
-
-    doc.text(
-      `Date: ${formatRoundDate(roundMatches)}`,
-      14,
-      66,
-    );
-
-    doc.text(
-      `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
-      14,
-      73,
-    );
-
-    doc.text(
-      `Total Matches: ${roundMatches.length}`,
-      14,
-      80,
-    );
-
-    // ===================================================
-    // MATCH TABLE
-    // ===================================================
-
-    const tableRows =
-      roundMatches.map(
-        (match, index) => {
-          const homePlayer =
-            getPlayer(
-              match.homePlayerId,
-            );
-
-          const awayPlayer =
-            getPlayer(
-              match.awayPlayerId,
-            );
-
-          return [
-            String(index + 1),
-            match.matchId,
-            homePlayer?.name ||
-              match.homePlayerId,
-            "VS",
-            awayPlayer?.name ||
-              match.awayPlayerId,
-            formatDeadline(
-              match.deadline,
-            ),
-            match.status,
-          ];
-        },
-      );
-
-    autoTable(doc, {
-      startY: 88,
-
-      head: [
-        [
-          "#",
-          "Match ID",
-          "Home Player",
-          "",
-          "Away Player",
-          "Deadline",
-          "Status",
-        ],
-      ],
-
-      body: tableRows,
-
-      theme: "grid",
-
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-        valign: "middle",
-      },
-
-      headStyles: {
-        fontSize: 8,
-        fontStyle: "bold",
-        fillColor: [30, 30, 30],
-        textColor: [255, 255, 255],
-      },
-
-      columnStyles: {
-        0: {
-          halign: "center",
-          cellWidth: 10,
-        },
-
-        1: {
-          cellWidth: 23,
-        },
-
-        2: {
-          cellWidth: 40,
-        },
-
-        3: {
-          halign: "center",
-          cellWidth: 12,
-          fontStyle: "bold",
-        },
-
-        4: {
-          cellWidth: 40,
-        },
-
-        5: {
-          cellWidth: 40,
-        },
-
-        6: {
-          cellWidth: 25,
-        },
-      },
-    });
-
-    // ===================================================
-    // FOOTER
-    // ===================================================
-
-    const pageCount =
-      doc.getNumberOfPages();
-
-    for (
-      let page = 1;
-      page <= pageCount;
-      page++
-    ) {
-      doc.setPage(page);
-
-      doc.setFont(
-        "helvetica",
-        "normal",
-      );
-
-      doc.setFontSize(8);
-
-      doc.setTextColor(
-        120,
-        120,
-        120,
-      );
-
-      doc.text(
-        `Thrill Seekers Efootball Club • Round ${round}`,
-        14,
-        287,
-      );
-
-      doc.text(
-        `Page ${page} of ${pageCount}`,
-        196,
-        287,
-        {
-          align: "right",
-        },
-      );
-    }
-
-    // ===================================================
-    // FILE NAME
-    // ===================================================
-
-    const safeDivisionName =
-      (
-        division.name ||
-        `Division-${division.divisionNumber}`
+      `Division-${division.divisionNumber}`
+    )
+      .replace(
+        /[^a-z0-9]+/gi,
+        "-",
       )
-        .replace(
-          /[^a-z0-9]+/gi,
-          "-",
-        )
-        .replace(
-          /^-+|-+$/g,
-          "",
-        );
+      .replace(
+        /^-+|-+$/g,
+        "",
+      );
 
-    doc.save(
-      `${safeDivisionName}-Round-${round}-Fixture.pdf`,
-    );
-  };
+  doc.save(
+    `${safeDivisionName}-Round-${round}-Fixture.pdf`,
+  );
+};
 
   // =====================================================
   // GET DATE FOR DATE INPUT
