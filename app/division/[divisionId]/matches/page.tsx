@@ -28,7 +28,11 @@ import {
   ChevronUp,
   ShieldCheck,
   X,
+  Download,
 } from "lucide-react";
+
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type MatchStatus =
   | "SCHEDULED"
@@ -359,44 +363,47 @@ export default function MatchesPage() {
   // RESULT PERMISSION
   // =====================================================
 
-  // =====================================================
-// RESULT PERMISSION
-// =====================================================
+  const canSubmitMatch = (
+    match: Match,
+  ) => {
+    /*
+     * SuperAdmin can submit any match.
+     */
+    if (isSuperAdmin) {
+      return true;
+    }
 
-const canSubmitMatch = (
-  match: Match,
-) => {
-  /*
-   * SuperAdmin can submit any match.
-   */
-  if (isSuperAdmin) {
-    return true;
-  }
+    if (
+      userType === "player" &&
+      storedPlayer?.isAdmin === true
+    ) {
+      return true;
+    }
 
-  /*
-   * Logged-in player's own match.
-   */
-  const isOwnMatch =
-    match.homePlayerId ===
-      currentPlayerId ||
-    match.awayPlayerId ===
-      currentPlayerId;
+    /*
+     * Logged-in player's own match.
+     */
+    const isOwnMatch =
+      match.homePlayerId ===
+        currentPlayerId ||
+      match.awayPlayerId ===
+        currentPlayerId;
 
-  /*
-   * Admin can also submit matches
-   * specifically assigned to them.
-   */
-  const isAssignedAdmin =
-    userType === "player" &&
-    storedPlayer?.isAdmin === true &&
-    match.assignedAdminId ===
-      currentPlayerId;
+    /*
+     * Admin can also submit matches
+     * specifically assigned to them.
+     */
+    const isAssignedAdmin =
+      userType === "player" &&
+      storedPlayer?.isAdmin === true &&
+      match.assignedAdminId ===
+        currentPlayerId;
 
-  return (
-    isOwnMatch ||
-    isAssignedAdmin
-  );
-};
+    return (
+      isOwnMatch ||
+      isAssignedAdmin
+    );
+  };
 
   // =====================================================
   // GET PLAYER
@@ -494,6 +501,299 @@ const canSubmitMatch = (
         month: "long",
         year: "numeric",
       },
+    );
+  };
+
+  // =====================================================
+  // DOWNLOAD ROUND FIXTURE
+  // =====================================================
+
+  const downloadRoundFixture = (
+    round: number,
+    roundMatches: Match[],
+  ) => {
+    if (
+      !division ||
+      roundMatches.length === 0
+    ) {
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    // ===================================================
+    // PDF HEADER
+    // ===================================================
+
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(20);
+
+    doc.text(
+      "THRILL SEEKERS",
+      105,
+      18,
+      {
+        align: "center",
+      },
+    );
+
+    doc.setFontSize(11);
+
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.text(
+      "EFOOTBALL CLUB",
+      105,
+      25,
+      {
+        align: "center",
+      },
+    );
+
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(15);
+
+    doc.text(
+      division.name ||
+        `Division ${division.divisionNumber}`,
+      105,
+      36,
+      {
+        align: "center",
+      },
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.setFontSize(10);
+
+    doc.text(
+      `Season ${division.season}-${division.season + 1} • Phase ${division.phase}`,
+      105,
+      44,
+      {
+        align: "center",
+      },
+    );
+
+    // ===================================================
+    // ROUND INFO
+    // ===================================================
+
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(14);
+
+    doc.text(
+      `Round ${round}`,
+      14,
+      58,
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.setFontSize(10);
+
+    doc.text(
+      `Date: ${formatRoundDate(roundMatches)}`,
+      14,
+      66,
+    );
+
+    doc.text(
+      `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
+      14,
+      73,
+    );
+
+    doc.text(
+      `Total Matches: ${roundMatches.length}`,
+      14,
+      80,
+    );
+
+    // ===================================================
+    // MATCH TABLE
+    // ===================================================
+
+    const tableRows =
+      roundMatches.map(
+        (match, index) => {
+          const homePlayer =
+            getPlayer(
+              match.homePlayerId,
+            );
+
+          const awayPlayer =
+            getPlayer(
+              match.awayPlayerId,
+            );
+
+          return [
+            String(index + 1),
+            match.matchId,
+            homePlayer?.name ||
+              match.homePlayerId,
+            "VS",
+            awayPlayer?.name ||
+              match.awayPlayerId,
+            formatDeadline(
+              match.deadline,
+            ),
+            match.status,
+          ];
+        },
+      );
+
+    autoTable(doc, {
+      startY: 88,
+
+      head: [
+        [
+          "#",
+          "Match ID",
+          "Home Player",
+          "",
+          "Away Player",
+          "Deadline",
+          "Status",
+        ],
+      ],
+
+      body: tableRows,
+
+      theme: "grid",
+
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+        valign: "middle",
+      },
+
+      headStyles: {
+        fontSize: 8,
+        fontStyle: "bold",
+        fillColor: [30, 30, 30],
+        textColor: [255, 255, 255],
+      },
+
+      columnStyles: {
+        0: {
+          halign: "center",
+          cellWidth: 10,
+        },
+
+        1: {
+          cellWidth: 23,
+        },
+
+        2: {
+          cellWidth: 40,
+        },
+
+        3: {
+          halign: "center",
+          cellWidth: 12,
+          fontStyle: "bold",
+        },
+
+        4: {
+          cellWidth: 40,
+        },
+
+        5: {
+          cellWidth: 40,
+        },
+
+        6: {
+          cellWidth: 25,
+        },
+      },
+    });
+
+    // ===================================================
+    // FOOTER
+    // ===================================================
+
+    const pageCount =
+      doc.getNumberOfPages();
+
+    for (
+      let page = 1;
+      page <= pageCount;
+      page++
+    ) {
+      doc.setPage(page);
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
+
+      doc.setFontSize(8);
+
+      doc.setTextColor(
+        120,
+        120,
+        120,
+      );
+
+      doc.text(
+        `Thrill Seekers Efootball Club • Round ${round}`,
+        14,
+        287,
+      );
+
+      doc.text(
+        `Page ${page} of ${pageCount}`,
+        196,
+        287,
+        {
+          align: "right",
+        },
+      );
+    }
+
+    // ===================================================
+    // FILE NAME
+    // ===================================================
+
+    const safeDivisionName =
+      (
+        division.name ||
+        `Division-${division.divisionNumber}`
+      )
+        .replace(
+          /[^a-z0-9]+/gi,
+          "-",
+        )
+        .replace(
+          /^-+|-+$/g,
+          "",
+        );
+
+    doc.save(
+      `${safeDivisionName}-Round-${round}-Fixture.pdf`,
     );
   };
 
@@ -1074,14 +1374,28 @@ const canSubmitMatch = (
 
                         {/* ROUND HEADER */}
 
-                        <button
-                          type="button"
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() =>
                             toggleRound(
                               round,
                             )
                           }
-                          className="w-full text-left"
+                          onKeyDown={(event) => {
+                            if (
+                              event.key ===
+                                "Enter" ||
+                              event.key === " "
+                            ) {
+                              event.preventDefault();
+
+                              toggleRound(
+                                round,
+                              );
+                            }
+                          }}
+                          className="w-full cursor-pointer text-left"
                         >
 
                           <div className="p-4 sm:p-6">
@@ -1134,6 +1448,32 @@ const canSubmitMatch = (
 
                               <div className="flex shrink-0 items-center gap-2">
 
+                                {/* DOWNLOAD FIXTURE */}
+
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+
+                                    downloadRoundFixture(
+                                      round,
+                                      roundMatches,
+                                    );
+                                  }}
+                                  className="flex items-center gap-2 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-xs font-bold text-yellow-400 transition hover:bg-yellow-400/20"
+                                  title={`Download Round ${round} Fixture`}
+                                >
+                                  <Download
+                                    size={15}
+                                  />
+
+                                  <span className="hidden sm:inline">
+                                    Download Fixture
+                                  </span>
+                                </button>
+
+                                {/* DEADLINE */}
+
                                 <div className="hidden rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] text-zinc-500 sm:block">
                                   Deadline{" "}
                                   {formatDeadline(
@@ -1141,6 +1481,8 @@ const canSubmitMatch = (
                                       .deadline,
                                   )}
                                 </div>
+
+                                {/* EXPAND / COLLAPSE */}
 
                                 <div className="rounded-xl border border-white/10 p-2 text-zinc-500">
 
@@ -1162,7 +1504,7 @@ const canSubmitMatch = (
 
                           </div>
 
-                        </button>
+                        </div>
 
                         {/* ROUND MATCHES */}
 
