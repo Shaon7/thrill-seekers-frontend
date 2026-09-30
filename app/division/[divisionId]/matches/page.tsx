@@ -583,13 +583,13 @@ export default function MatchesPage() {
   // ===================================================
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(21);
+  doc.setFontSize(22);
   doc.setTextColor(...black);
 
   doc.text(
     "THRILL SEEKERS",
     14,
-    18,
+    19,
   );
 
   doc.setFont("helvetica", "normal");
@@ -599,7 +599,7 @@ export default function MatchesPage() {
   doc.text(
     "EFOOTBALL CLUB",
     14,
-    24,
+    25,
   );
 
   // Right-side document label
@@ -628,7 +628,7 @@ export default function MatchesPage() {
   // Thin divider
   doc.setDrawColor(...lightGray);
   doc.setLineWidth(0.5);
-  doc.line(14, 29, pageWidth - 14, 29);
+  doc.line(14, 31, pageWidth - 14, 31);
 
   // ===================================================
   // DIVISION / SEASON TITLE
@@ -642,7 +642,7 @@ export default function MatchesPage() {
     division.name ||
       `Division ${division.divisionNumber}`,
     14,
-    40,
+    42,
   );
 
   doc.setFont("helvetica", "normal");
@@ -652,12 +652,12 @@ export default function MatchesPage() {
   doc.text(
     `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
     14,
-    46,
+    48,
   );
 
   // Accent underline
   doc.setFillColor(...accent);
-  doc.rect(14, 50, 34, 1.5, "F");
+  doc.rect(14, 52, 36, 1.5, "F");
 
   // ===================================================
   // ROUND SUMMARY
@@ -666,7 +666,7 @@ export default function MatchesPage() {
   doc.setFillColor(...softGray);
   doc.roundedRect(
     14,
-    55,
+    58,
     pageWidth - 28,
     20,
     2.5,
@@ -678,7 +678,7 @@ export default function MatchesPage() {
   doc.setFillColor(...accent);
   doc.roundedRect(
     14,
-    55,
+    58,
     2,
     20,
     1,
@@ -693,7 +693,7 @@ export default function MatchesPage() {
   doc.text(
     `ROUND ${round}`,
     22,
-    64,
+    67,
   );
 
   doc.setFont("helvetica", "normal");
@@ -703,7 +703,7 @@ export default function MatchesPage() {
   doc.text(
     `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
     70,
-    65,
+    68,
   );
 
   doc.setFont("helvetica", "bold");
@@ -713,7 +713,7 @@ export default function MatchesPage() {
   doc.text(
     `TOTAL MATCHES  ${roundMatches.length}`,
     pageWidth - 22,
-    65,
+    68,
     { align: "right" },
   );
 
@@ -772,7 +772,7 @@ export default function MatchesPage() {
   // ===================================================
 
   autoTable(doc, {
-    startY: 82,
+    startY: 86,
 
     margin: {
       left: 14,
@@ -797,18 +797,20 @@ export default function MatchesPage() {
 
     styles: {
       font: "helvetica",
-      fontSize: 8.2,
-      cellPadding: 2.7,
+      fontSize: 8.8,
+      cellPadding: 3.0,
       valign: "middle",
-      lineWidth: 0,
+      lineWidth: 0.2,
+      lineColor: lightGray,
       textColor: black,
-      fillColor: false,
+      fillColor: white,
       overflow: "ellipsize",
+      minCellHeight: 10.0,
     },
 
     headStyles: {
       fontStyle: "bold",
-      fontSize: 7.5,
+      fontSize: 8,
       textColor: white,
       fillColor: false,
       halign: "center",
@@ -824,13 +826,13 @@ export default function MatchesPage() {
       },
 
       1: {
-        cellWidth: 28,
+        cellWidth: 30,
         fontStyle: "bold",
       },
 
       2: {
-        cellWidth: 45,
-        fontSize: 7.4,
+        cellWidth: 46,
+        fontSize: 8.0,
         fontStyle: "bold",
         overflow: "ellipsize",
       },
@@ -842,19 +844,19 @@ export default function MatchesPage() {
       },
 
       4: {
-        cellWidth: 45,
-        fontSize: 7.4,
+        cellWidth: 46,
+        fontSize: 8.0,
         fontStyle: "bold",
         overflow: "ellipsize",
       },
 
       5: {
-        cellWidth: 55,
+        cellWidth: 52,
         halign: "center",
       },
 
       6: {
-        cellWidth: 38,
+        cellWidth: 36,
         halign: "center",
         fontStyle: "bold",
         overflow: "ellipsize",
@@ -923,25 +925,29 @@ export default function MatchesPage() {
           data.cell.y + data.row.height,
         );
 
-        // Subtle club logo watermark inside the fixture table.
-        // Draw it once per table/page before the remaining cells render.
-        if (fixtureLogo && data.row.index === 0) {
+        // Draw the club logo watermark after the row background so it
+        // remains visible inside the table, but before the cell text.
+        if (fixtureLogo) {
           doc.saveGraphicsState();
+
           doc.setGState(
             doc.GState({
-              opacity: 0.045,
+              opacity: 0.008,
             }),
           );
+
           doc.addImage(
             fixtureLogo,
             "PNG",
-            pageWidth / 2 - 18,
-            data.cell.y + 1,
-            36,
-            36,
+            pageWidth / 2 - 31,
+            91,
+            62,
+            62,
           );
+
           doc.restoreGraphicsState();
         }
+
       }
 
       // Match number badge
@@ -976,12 +982,49 @@ export default function MatchesPage() {
           data.cell.y + 2,
           data.cell.width - 6,
           data.cell.height - 4,
-          3,
-          3,
+          2,
+          2,
           "F",
         );
 
         data.cell.styles.textColor = white;
+      }
+
+      // Status pill
+      if (
+        data.section === "body" &&
+        data.column.index === 6
+      ) {
+        const status =
+          String(data.cell.raw || "").toUpperCase();
+
+        if (status === "SCHEDULED") {
+          doc.setFillColor(239, 247, 239);
+          doc.roundedRect(
+            data.cell.x + 4,
+            data.cell.y + 1.8,
+            data.cell.width - 8,
+            data.cell.height - 3.6,
+            2.5,
+            2.5,
+            "F",
+          );
+
+          // Small green status dot
+          doc.setFillColor(42, 125, 55);
+          doc.circle(
+            data.cell.x + 10,
+            data.cell.y + data.cell.height / 2,
+            1.15,
+            "F",
+          );
+
+          data.cell.styles.textColor = [
+            45,
+            85,
+            45,
+          ];
+        }
       }
     },
 
@@ -1006,9 +1049,9 @@ export default function MatchesPage() {
 
         if (status === "SCHEDULED") {
           data.cell.styles.textColor = [
+            70,
             90,
-            90,
-            90,
+            70,
           ];
         }
 
@@ -1037,6 +1080,7 @@ export default function MatchesPage() {
         }
       }
     },
+
   });
 
   // ===================================================
@@ -1053,7 +1097,7 @@ export default function MatchesPage() {
     doc.setPage(page);
 
     doc.setDrawColor(...lightGray);
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.35);
 
     doc.line(
       14,
