@@ -546,7 +546,7 @@ export default function MatchesPage() {
   const doc = new jsPDF({
     orientation: "landscape",
     unit: "mm",
-    format: "a4",
+    format: [260, 185],
   });
 
   const pageWidth =
@@ -588,8 +588,8 @@ export default function MatchesPage() {
 
   doc.text(
     "THRILL SEEKERS",
-    14,
-    19,
+    10,
+    18,
   );
 
   doc.setFont("helvetica", "normal");
@@ -598,8 +598,8 @@ export default function MatchesPage() {
 
   doc.text(
     "EFOOTBALL CLUB",
-    14,
-    25,
+    10,
+    24,
   );
 
   // Right-side document label
@@ -609,8 +609,8 @@ export default function MatchesPage() {
 
   doc.text(
     "MATCH FIXTURE",
-    pageWidth - 14,
-    18,
+    pageWidth - 10,
+    17,
     { align: "right" },
   );
 
@@ -620,15 +620,15 @@ export default function MatchesPage() {
 
   doc.text(
     `ROUND ${round}`,
-    pageWidth - 14,
-    24,
+    pageWidth - 10,
+    23,
     { align: "right" },
   );
 
   // Thin divider
   doc.setDrawColor(...lightGray);
   doc.setLineWidth(0.5);
-  doc.line(14, 31, pageWidth - 14, 31);
+  doc.line(10, 30, pageWidth - 10, 30);
 
   // ===================================================
   // DIVISION / SEASON TITLE
@@ -641,8 +641,8 @@ export default function MatchesPage() {
   doc.text(
     division.name ||
       `Division ${division.divisionNumber}`,
-    14,
-    42,
+    10,
+    41,
   );
 
   doc.setFont("helvetica", "normal");
@@ -651,13 +651,13 @@ export default function MatchesPage() {
 
   doc.text(
     `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
-    14,
-    48,
+    10,
+    47,
   );
 
   // Accent underline
   doc.setFillColor(...accent);
-  doc.rect(14, 52, 36, 1.5, "F");
+  doc.rect(10, 51, 34, 1.5, "F");
 
   // ===================================================
   // ROUND SUMMARY
@@ -665,10 +665,10 @@ export default function MatchesPage() {
 
   doc.setFillColor(...softGray);
   doc.roundedRect(
-    14,
-    58,
-    pageWidth - 28,
-    20,
+    10,
+    56,
+    pageWidth - 20,
+    18,
     2.5,
     2.5,
     "F",
@@ -677,10 +677,10 @@ export default function MatchesPage() {
   // Left vertical accent
   doc.setFillColor(...accent);
   doc.roundedRect(
-    14,
-    58,
+    10,
+    56,
     2,
-    20,
+    18,
     1,
     1,
     "F",
@@ -692,8 +692,8 @@ export default function MatchesPage() {
 
   doc.text(
     `ROUND ${round}`,
-    22,
-    67,
+    18,
+    65,
   );
 
   doc.setFont("helvetica", "normal");
@@ -702,8 +702,8 @@ export default function MatchesPage() {
 
   doc.text(
     `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
-    70,
-    68,
+    58,
+    66,
   );
 
   doc.setFont("helvetica", "bold");
@@ -712,8 +712,8 @@ export default function MatchesPage() {
 
   doc.text(
     `TOTAL MATCHES  ${roundMatches.length}`,
-    pageWidth - 22,
-    68,
+    pageWidth - 18,
+    66,
     { align: "right" },
   );
 
@@ -772,11 +772,11 @@ export default function MatchesPage() {
   // ===================================================
 
   autoTable(doc, {
-    startY: 86,
+    startY: 76,
 
     margin: {
-      left: 14,
-      right: 14,
+      left: 10,
+      right: 10,
     },
 
     head: [
@@ -805,7 +805,7 @@ export default function MatchesPage() {
       textColor: black,
       fillColor: white,
       overflow: "ellipsize",
-      minCellHeight: 10.0,
+      minCellHeight: 8.5,
     },
 
     headStyles: {
@@ -820,43 +820,43 @@ export default function MatchesPage() {
 
     columnStyles: {
       0: {
-        cellWidth: 11,
+        cellWidth: 10,
         halign: "center",
         fontStyle: "bold",
       },
 
       1: {
-        cellWidth: 30,
+        cellWidth: 28,
         fontStyle: "bold",
       },
 
       2: {
-        cellWidth: 46,
+        cellWidth: 48,
         fontSize: 8.0,
         fontStyle: "bold",
         overflow: "ellipsize",
       },
 
       3: {
-        cellWidth: 13,
+        cellWidth: 12,
         halign: "center",
         fontStyle: "bold",
       },
 
       4: {
-        cellWidth: 46,
+        cellWidth: 48,
         fontSize: 8.0,
         fontStyle: "bold",
         overflow: "ellipsize",
       },
 
       5: {
-        cellWidth: 52,
+        cellWidth: 56,
         halign: "center",
       },
 
       6: {
-        cellWidth: 36,
+        cellWidth: 38,
         halign: "center",
         fontStyle: "bold",
         overflow: "ellipsize",
@@ -890,8 +890,8 @@ export default function MatchesPage() {
         data.section === "body" &&
         data.column.index === 0
       ) {
-        const tableLeft = 14;
-        const tableWidth = pageWidth - 28;
+        const tableLeft = 10;
+        const tableWidth = pageWidth - 20;
 
         doc.setFillColor(
           data.row.index % 2 === 0
@@ -939,10 +939,10 @@ export default function MatchesPage() {
           doc.addImage(
             fixtureLogo,
             "PNG",
-            pageWidth / 2 - 31,
-            91,
-            62,
-            62,
+            pageWidth / 2 - 28,
+            84,
+            56,
+            56,
           );
 
           doc.restoreGraphicsState();
@@ -990,42 +990,6 @@ export default function MatchesPage() {
         data.cell.styles.textColor = white;
       }
 
-      // Status pill
-      if (
-        data.section === "body" &&
-        data.column.index === 6
-      ) {
-        const status =
-          String(data.cell.raw || "").toUpperCase();
-
-        if (status === "SCHEDULED") {
-          doc.setFillColor(239, 247, 239);
-          doc.roundedRect(
-            data.cell.x + 4,
-            data.cell.y + 1.8,
-            data.cell.width - 8,
-            data.cell.height - 3.6,
-            2.5,
-            2.5,
-            "F",
-          );
-
-          // Small green status dot
-          doc.setFillColor(42, 125, 55);
-          doc.circle(
-            data.cell.x + 10,
-            data.cell.y + data.cell.height / 2,
-            1.15,
-            "F",
-          );
-
-          data.cell.styles.textColor = [
-            45,
-            85,
-            45,
-          ];
-        }
-      }
     },
 
     // =================================================
@@ -1044,40 +1008,9 @@ export default function MatchesPage() {
         data.section === "body" &&
         data.column.index === 6
       ) {
-        const status =
-          String(data.cell.raw || "").toUpperCase();
-
-        if (status === "SCHEDULED") {
-          data.cell.styles.textColor = [
-            70,
-            90,
-            70,
-          ];
-        }
-
-        if (status === "COMPLETED") {
-          data.cell.styles.textColor = [
-            20,
-            130,
-            75,
-          ];
-        }
-
-        if (status === "RESCHEDULED") {
-          data.cell.styles.textColor = [
-            180,
-            105,
-            0,
-          ];
-        }
-
-        if (status === "CANCELLED") {
-          data.cell.styles.textColor = [
-            190,
-            30,
-            50,
-          ];
-        }
+        data.cell.styles.textColor = black;
+        data.cell.styles.fontStyle = "normal";
+        data.cell.styles.halign = "center";
       }
     },
 
@@ -1100,20 +1033,20 @@ export default function MatchesPage() {
     doc.setLineWidth(0.35);
 
     doc.line(
-      14,
-      196,
-      pageWidth - 14,
-      196,
+      10,
+      pageHeight - 20,
+      pageWidth - 10,
+      pageHeight - 20,
     );
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(...black);
 
     doc.text(
       "THRILL SEEKERS",
-      14,
-      202,
+      10,
+      pageHeight - 14,
     );
 
     doc.setFont("helvetica", "normal");
@@ -1122,23 +1055,23 @@ export default function MatchesPage() {
     doc.text(
       `Efootball Club  •  Round ${round}`,
       pageWidth / 2,
-      202,
+      pageHeight - 14,
       { align: "center" },
     );
 
     doc.text(
       `Page ${page} of ${pageCount}`,
-      pageWidth - 14,
-      202,
+      pageWidth - 10,
+      pageHeight - 14,
       { align: "right" },
     );
 
     doc.setFillColor(...accent);
 
     doc.rect(
-      14,
-      206,
-      pageWidth - 28,
+      10,
+      pageHeight - 8,
+      pageWidth - 20,
       1,
       "F",
     );
