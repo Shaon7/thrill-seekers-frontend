@@ -14,7 +14,8 @@ import {
 
 import Navbar from "@/app/components/Navbar";
 
-const API_URL = "https://thrill-seekers-backend-production.up.railway.app";
+const API_URL =
+  "https://thrill-seekers-backend-production.up.railway.app";
 
 type Payment = {
   id: number;
@@ -61,6 +62,23 @@ export default function SuperAdminPaymentsPage() {
     useState<Payment | null>(null);
 
   const [rejectionReason, setRejectionReason] =
+    useState("");
+
+  // =====================================================
+  // PLAYER NAMES
+  // =====================================================
+
+  const [playerNames, setPlayerNames] =
+    useState<Record<string, string>>({});
+
+  // =====================================================
+  // CONFIRM PAYMENT MODAL
+  // =====================================================
+
+  const [confirmingPayment, setConfirmingPayment] =
+    useState<Payment | null>(null);
+
+  const [confirmationTransactionId, setConfirmationTransactionId] =
     useState("");
 
   // =====================================================
@@ -126,10 +144,18 @@ export default function SuperAdminPaymentsPage() {
         );
       }
 
-      setPayments(
+      const paymentData: Payment[] =
         Array.isArray(data)
           ? data
-          : [],
+          : [];
+
+      setPayments(
+        paymentData,
+      );
+
+      // Load names separately.
+      loadPlayerNames(
+        paymentData,
       );
     } catch (err) {
       console.error(
@@ -144,6 +170,114 @@ export default function SuperAdminPaymentsPage() {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  // =====================================================
+  // LOAD PLAYER NAMES
+  // =====================================================
+
+  const loadPlayerNames = async (
+    paymentData: Payment[],
+  ) => {
+    try {
+      const token =
+        localStorage.getItem(
+          "access_token",
+        );
+
+      if (!token) {
+        return;
+      }
+
+      const uniquePlayerIds =
+        Array.from(
+          new Set(
+            paymentData.map(
+              (payment) =>
+                payment.playerId,
+            ),
+          ),
+        );
+
+      if (
+        uniquePlayerIds.length ===
+        0
+      ) {
+        return;
+      }
+
+      const results =
+        await Promise.allSettled(
+          uniquePlayerIds.map(
+            async (playerId) => {
+              const response =
+                await fetch(
+                  `${API_URL}/player/${playerId}`,
+                  {
+                    method: "GET",
+
+                    headers: {
+                      Authorization:
+                        `Bearer ${token}`,
+
+                      "Content-Type":
+                        "application/json",
+                    },
+
+                    cache: "no-store",
+                  },
+                );
+
+              if (!response.ok) {
+                throw new Error(
+                  `Failed to load player ${playerId}`,
+                );
+              }
+
+              const player =
+                await response.json();
+
+              return {
+                playerId,
+                name:
+                  player?.name ||
+                  "Unknown Player",
+              };
+            },
+          ),
+        );
+
+      const nameMap: Record<
+        string,
+        string
+      > = {};
+
+      results.forEach(
+        (result) => {
+          if (
+            result.status ===
+            "fulfilled"
+          ) {
+            nameMap[
+              result.value.playerId
+            ] =
+              result.value.name;
+          }
+        },
+      );
+
+      setPlayerNames(
+        (current) => ({
+          ...current,
+          ...nameMap,
+        }),
+      );
+    } catch (err) {
+      console.error(
+        "Player names loading error:",
+        err,
+      );
     }
   };
 
@@ -258,11 +392,50 @@ export default function SuperAdminPaymentsPage() {
   };
 
   // =====================================================
+  // OPEN CONFIRM MODAL
+  // =====================================================
+
+  const openConfirmModal = (
+    payment: Payment,
+  ) => {
+    setConfirmingPayment(
+      payment,
+    );
+
+    setConfirmationTransactionId(
+      "",
+    );
+
+    setError("");
+  };
+
+  // =====================================================
+  // CLOSE CONFIRM MODAL
+  // =====================================================
+
+  const closeConfirmModal = () => {
+    if (
+      actionLoading !== null
+    ) {
+      return;
+    }
+
+    setConfirmingPayment(
+      null,
+    );
+
+    setConfirmationTransactionId(
+      "",
+    );
+  };
+
+  // =====================================================
   // CONFIRM PAYMENT
   // =====================================================
 
   const confirmPayment = async (
     payment: Payment,
+    transactionId?: string,
   ) => {
     try {
       setActionLoading(
@@ -282,6 +455,18 @@ export default function SuperAdminPaymentsPage() {
         );
       }
 
+      const isPending =
+        !payment.transactionId &&
+        !payment.senderBkashNumber;
+
+      const requestBody =
+        isPending
+          ? {
+              transactionId:
+                transactionId?.trim(),
+            }
+          : undefined;
+
       const response =
         await fetch(
           `${API_URL}/payments/${payment.id}/verify`,
@@ -295,6 +480,15 @@ export default function SuperAdminPaymentsPage() {
               "Content-Type":
                 "application/json",
             },
+
+            ...(requestBody
+              ? {
+                  body:
+                    JSON.stringify(
+                      requestBody,
+                    ),
+                }
+              : {}),
           },
         );
 
@@ -322,6 +516,14 @@ export default function SuperAdminPaymentsPage() {
           message,
         );
       }
+
+      setConfirmingPayment(
+        null,
+      );
+
+      setConfirmationTransactionId(
+        "",
+      );
 
       await fetchPayments();
 
@@ -433,10 +635,11 @@ export default function SuperAdminPaymentsPage() {
                   "application/json",
               },
 
-              body: JSON.stringify({
-                rejectionReason:
-                  reason,
-              }),
+              body:
+                JSON.stringify({
+                  rejectionReason:
+                    reason,
+                }),
             },
           );
 
@@ -491,9 +694,7 @@ export default function SuperAdminPaymentsPage() {
             : "Failed to reject payment.",
         );
       } finally {
-        setActionLoading(
-          null,
-        );
+        setActionLoading(null);
       }
     };
 
@@ -829,6 +1030,12 @@ export default function SuperAdminPaymentsPage() {
                 <PaymentCard
                   key={payment.id}
                   payment={payment}
+                  playerName={
+                    playerNames[
+                      payment.playerId
+                    ] ||
+                    "Loading player..."
+                  }
                   activeTab={
                     activeTab
                   }
@@ -845,11 +1052,20 @@ export default function SuperAdminPaymentsPage() {
                   formatAmount={
                     formatAmount
                   }
-                  onConfirm={() =>
-                    confirmPayment(
-                      payment,
-                    )
-                  }
+                  onConfirm={() => {
+                    if (
+                      activeTab ===
+                      "PENDING"
+                    ) {
+                      openConfirmModal(
+                        payment,
+                      );
+                    } else {
+                      confirmPayment(
+                        payment,
+                      );
+                    }
+                  }}
                   onReject={() =>
                     openRejectModal(
                       payment,
@@ -863,6 +1079,151 @@ export default function SuperAdminPaymentsPage() {
         )}
 
       </div>
+
+      {/* =================================================
+          CONFIRM PAYMENT MODAL
+      ================================================= */}
+
+      {confirmingPayment && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-sm">
+
+          <div className="w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-2xl">
+
+            <div className="p-6 sm:p-7">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-yellow-400/20 bg-yellow-400/10">
+
+                  <CheckCircle2
+                    size={21}
+                    className="text-yellow-400"
+                  />
+
+                </div>
+
+                <div>
+
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-yellow-400">
+                    Payment Action
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-bold">
+                    Confirm Payment
+                  </h2>
+
+                </div>
+
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+
+                <p className="text-xs text-zinc-600">
+                  Player
+                </p>
+
+                <p className="mt-1 text-sm font-semibold text-white">
+                  {
+                    playerNames[
+                      confirmingPayment.playerId
+                    ] ||
+                    "Unknown Player"
+                  }
+                </p>
+
+                <p className="mt-1 text-xs text-zinc-500">
+                  THS ID:{" "}
+                  {
+                    confirmingPayment.playerId
+                  }
+                </p>
+
+                <p className="mt-2 text-sm text-yellow-400">
+                  {formatAmount(
+                    confirmingPayment.amount,
+                  )}
+                </p>
+
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-zinc-400">
+                Enter the reference or
+                transaction ID that should
+                be saved with this payment.
+              </p>
+
+              <input
+                type="text"
+                value={
+                  confirmationTransactionId
+                }
+                onChange={(event) =>
+                  setConfirmationTransactionId(
+                    event.target.value,
+                  )
+                }
+                placeholder="Enter reference / transaction ID..."
+                className="mt-5 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-400/30"
+              />
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-end">
+
+                <button
+                  type="button"
+                  onClick={
+                    closeConfirmModal
+                  }
+                  disabled={
+                    actionLoading !==
+                    null
+                  }
+                  className="rounded-xl border border-white/10 px-5 py-3 text-sm font-semibold text-zinc-400 transition hover:bg-white/5 hover:text-white disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    confirmPayment(
+                      confirmingPayment,
+                      confirmationTransactionId,
+                    )
+                  }
+                  disabled={
+                    !confirmationTransactionId.trim() ||
+                    actionLoading !== null
+                  }
+                  className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+
+                  {actionLoading !==
+                  null ? (
+                    <>
+                      <Loader2
+                        size={17}
+                        className="animate-spin"
+                      />
+                      Confirming...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2
+                        size={17}
+                      />
+                      Confirm Payment
+                    </>
+                  )}
+
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* =================================================
           REJECT MODAL
@@ -985,6 +1346,7 @@ export default function SuperAdminPaymentsPage() {
           </div>
         </div>
       )}
+
     </main>
   );
 }
@@ -995,6 +1357,7 @@ export default function SuperAdminPaymentsPage() {
 
 function PaymentCard({
   payment,
+  playerName,
   activeTab,
   actionLoading,
   formatPaymentType,
@@ -1004,6 +1367,7 @@ function PaymentCard({
   onReject,
 }: {
   payment: Payment;
+  playerName: string;
   activeTab: Tab;
   actionLoading: boolean;
   formatPaymentType: (
@@ -1082,13 +1446,11 @@ function PaymentCard({
         <div>
 
           <p className="text-lg font-bold text-white">
-            {formatPaymentType(
-              payment.paymentType,
-            )}
+            {playerName}
           </p>
 
           <p className="mt-1 text-xs text-zinc-600">
-            Player ID:{" "}
+            THS ID:{" "}
             {payment.playerId}
           </p>
 
@@ -1246,25 +1608,50 @@ function PaymentCard({
       )}
 
       {/* ==================================================
-          PENDING MESSAGE
+          PENDING MESSAGE + CONFIRM BUTTON
       ================================================== */}
 
       {isPending && (
-        <div className="mt-5 rounded-2xl border border-orange-400/10 bg-orange-400/5 px-4 py-3">
+        <div className="mt-5 border-t border-white/10 pt-4">
 
-          <div className="flex items-center gap-2">
+          <div className="rounded-2xl border border-orange-400/10 bg-orange-400/5 px-4 py-3">
 
-            <Clock3
-              size={16}
-              className="text-orange-400"
-            />
+            <div className="flex items-center gap-2">
 
-            <p className="text-xs text-orange-400">
-              Waiting for player payment
-              submission.
-            </p>
+              <Clock3
+                size={16}
+                className="text-orange-400"
+              />
+
+              <p className="text-xs text-orange-400">
+                Waiting for player payment
+                submission.
+              </p>
+
+            </div>
 
           </div>
+
+          <button
+            type="button"
+            disabled={
+              actionLoading
+            }
+            onClick={
+              onConfirm
+            }
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+
+            <CheckCircle2
+              size={17}
+            />
+
+            {actionLoading
+              ? "Processing..."
+              : "Confirm Payment"}
+
+          </button>
 
         </div>
       )}
