@@ -49,6 +49,21 @@ interface Payment {
   verifiedBy?: string | null;
 }
 
+/* =====================================================
+   NOTIFICATION
+===================================================== */
+
+interface Notification {
+  id: number;
+  title?: string;
+  message?: string;
+  type?: string;
+  isRead?: boolean;
+  read?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
@@ -70,6 +85,22 @@ export default function Navbar() {
 
   const [pendingPaymentCount, setPendingPaymentCount] =
     useState(0);
+
+  /* =====================================================
+     NOTIFICATION STATE
+  ===================================================== */
+
+  const [notificationOpen, setNotificationOpen] =
+    useState(false);
+
+  const [notifications, setNotifications] =
+    useState<Notification[]>([]);
+
+  const [unreadNotificationCount, setUnreadNotificationCount] =
+    useState(0);
+
+  const [notificationLoading, setNotificationLoading] =
+    useState(false);
 
   // =====================================================
   // NAVIGATION ITEMS
@@ -231,6 +262,293 @@ export default function Navbar() {
 
     setPendingPaymentCount(0);
   }, [userType, pathname]);
+
+  // =====================================================
+  // LOAD NOTIFICATIONS
+  // =====================================================
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        const token =
+          localStorage.getItem("access_token");
+
+        if (!token) {
+          setNotifications([]);
+          setUnreadNotificationCount(0);
+          return;
+        }
+
+        const response = await fetch(
+          "https://thrill-seekers-backend-production.up.railway.app/notifications/my",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          },
+        );
+
+        if (!response.ok) {
+          setNotifications([]);
+          return;
+        }
+
+        const data = await response.json();
+
+        const notificationList: Notification[] =
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data?.data)
+              ? data.data
+              : [];
+
+        // Latest notifications first
+        const sortedNotifications =
+          [...notificationList].sort(
+            (a, b) => {
+              const dateA = a.createdAt
+                ? new Date(a.createdAt).getTime()
+                : 0;
+
+              const dateB = b.createdAt
+                ? new Date(b.createdAt).getTime()
+                : 0;
+
+              return dateB - dateA;
+            },
+          );
+
+        // Only show the latest 5
+        setNotifications(
+          sortedNotifications.slice(0, 5),
+        );
+      } catch (error) {
+        console.error(
+          "Navbar notification loading error:",
+          error,
+        );
+      }
+    };
+
+    const loadUnreadNotificationCount =
+      async () => {
+        try {
+          const token =
+            localStorage.getItem("access_token");
+
+          if (!token) {
+            setUnreadNotificationCount(0);
+            return;
+          }
+
+          const response = await fetch(
+            "https://thrill-seekers-backend-production.up.railway.app/notifications/unread-count",
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              cache: "no-store",
+            },
+          );
+
+          if (!response.ok) {
+            setUnreadNotificationCount(0);
+            return;
+          }
+
+          const data = await response.json();
+
+          setUnreadNotificationCount(
+            Number(data?.count || 0),
+          );
+        } catch (error) {
+          console.error(
+            "Navbar unread notification count error:",
+            error,
+          );
+
+          setUnreadNotificationCount(0);
+        }
+      };
+
+    loadNotifications();
+    loadUnreadNotificationCount();
+
+    // Refresh notifications periodically
+    const interval = setInterval(() => {
+      loadNotifications();
+      loadUnreadNotificationCount();
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [userType, pathname]);
+
+  // =====================================================
+  // OPEN NOTIFICATION DROPDOWN
+  // =====================================================
+
+  const handleNotificationToggle = async () => {
+    setNotificationOpen(
+      (current) => !current,
+    );
+  };
+
+  // =====================================================
+  // MARK NOTIFICATION AS READ
+  // =====================================================
+
+  const handleMarkNotificationAsRead = async (
+    notificationId: number,
+  ) => {
+    try {
+      const token =
+        localStorage.getItem("access_token");
+
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(
+        `https://thrill-seekers-backend-production.up.railway.app/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        console.error(
+          "Failed to mark notification as read.",
+        );
+        return;
+      }
+
+      // Update notification locally
+      setNotifications(
+        (currentNotifications) =>
+          currentNotifications.map(
+            (notification) =>
+              notification.id === notificationId
+                ? {
+                    ...notification,
+                    isRead: true,
+                    read: true,
+                  }
+                : notification,
+          ),
+      );
+
+      // Refresh unread count
+      const countResponse =
+        await fetch(
+          "https://thrill-seekers-backend-production.up.railway.app/notifications/unread-count",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          },
+        );
+
+      if (countResponse.ok) {
+        const countData =
+          await countResponse.json();
+
+        setUnreadNotificationCount(
+          Number(countData?.count || 0),
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Mark notification as read error:",
+        error,
+      );
+    }
+  };
+
+  // =====================================================
+  // DELETE NOTIFICATION
+  // =====================================================
+
+  const handleDeleteNotification = async (
+    notificationId: number,
+  ) => {
+    try {
+      const token =
+        localStorage.getItem("access_token");
+
+      if (!token) {
+        return;
+      }
+
+      const response = await fetch(
+        `https://thrill-seekers-backend-production.up.railway.app/notifications/${notificationId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        console.error(
+          "Failed to delete notification.",
+        );
+        return;
+      }
+
+      // Remove notification from dropdown
+      setNotifications(
+        (currentNotifications) =>
+          currentNotifications.filter(
+            (notification) =>
+              notification.id !== notificationId,
+          ),
+      );
+
+      // Refresh unread count
+      const countResponse =
+        await fetch(
+          "https://thrill-seekers-backend-production.up.railway.app/notifications/unread-count",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cache: "no-store",
+          },
+        );
+
+      if (countResponse.ok) {
+        const countData =
+          await countResponse.json();
+
+        setUnreadNotificationCount(
+          Number(countData?.count || 0),
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Delete notification error:",
+        error,
+      );
+    }
+  };
 
   // =====================================================
   // ROUTES
@@ -408,6 +726,8 @@ export default function Navbar() {
       setMobileMenuOpen(false);
       setUserMenuOpen(false);
       setPendingPaymentCount(0);
+      setNotifications([]);
+      setUnreadNotificationCount(0);
 
       window.location.href =
         "https://thrillseekers.vercel.app/";
@@ -422,6 +742,48 @@ export default function Navbar() {
     userType === "superadmin"
       ? "SuperAdmin"
       : player?.name || "Player";
+
+  // =====================================================
+  // NOTIFICATION READ STATUS
+  // =====================================================
+
+  const isNotificationRead = (
+    notification: Notification,
+  ) => {
+    return (
+      notification.isRead === true ||
+      notification.read === true
+    );
+  };
+
+  // =====================================================
+  // NOTIFICATION TIME
+  // =====================================================
+
+  const formatNotificationTime = (
+    createdAt?: string,
+  ) => {
+    if (!createdAt) {
+      return "";
+    }
+
+    const date =
+      new Date(createdAt);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toLocaleString(
+      undefined,
+      {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      },
+    );
+  };
 
   return (
     <header className="sticky top-0 z-50 overflow-visible border-b border-yellow-400/30 bg-black">
@@ -486,7 +848,7 @@ export default function Navbar() {
 
           {/* LOGO */}
 
-          <div className="relative flex h-[55] w-[55] shrink-0 items-center justify-center sm:h-[86px] sm:w-[86px] lg:h-[72px] lg:w-[72px]">
+          <div className="relative flex h-[55] w-[55] shrink-0 items-center justify-center sm:h-[86px] sm:w-[82px] lg:h-[72px] lg:w-[72px]">
 
             <div className="absolute inset-2 rounded-full bg-yellow-400/10 blur-xl" />
 
@@ -503,21 +865,18 @@ export default function Navbar() {
 
           {/* VERTICAL DIVIDER */}
 
-          <div className="mx-3 h-[58px] w-px bg-gradient-to-b from-transparent via-yellow-300/80 to-transparent sm:mx-4 sm:h-[64px] lg:mx-5 lg:h-[58px]" />
+          <div className="mx-1 h-[58px] w-px bg-gradient-to-b from-transparent via-yellow-300/80 to-transparent sm:mx-2 sm:h-[64px] lg:mx-3 lg:h-[58px]" />
 
           {/* BRAND */}
 
-          <div className="min-w-0">
-
-            <p className="whitespace-nowrap text-[17px] font-black leading-none tracking-[-0.02em] text-yellow-400 sm:text-[25px] lg:text-[22px]">
-              THRILL SEEKERS
-            </p>
-
-            <p className="mt-2 whitespace-nowrap text-[8px] font-medium uppercase tracking-[0.42em] text-yellow-100/75 sm:text-[10px] lg:text-[9px]">
-              EFOOTBALL CLUB
-            </p>
-
-          </div>
+          <div className="min-w-0 flex flex-col justify-center select-none">
+  <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent font-black tracking-wider uppercase text-[18px] sm:text-[22px] lg:text-[24px] leading-tight drop-shadow-[0_2px_10px_rgba(234,179,8,0.2)]">
+    THRILL
+  </span>
+  <span className="bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent font-extrabold tracking-[0.15em] uppercase text-[12px] sm:text-[14px] lg:text-[15px] leading-none opacity-90">
+    SEEKERS
+  </span>
+</div>
 
         </div>
 
@@ -576,14 +935,356 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2 sm:gap-3">
 
-          {/* Notification */}
+          {/* =================================================
+              DESKTOP NOTIFICATION
+          ================================================== */}
 
-          <button
-            type="button"
-            className="hidden rounded-xl border border-yellow-400/15 bg-black/30 p-2.5 text-zinc-300 transition hover:border-yellow-400/30 hover:bg-yellow-400/10 hover:text-yellow-400 sm:block"
-          >
-            <Bell size={18} />
-          </button>
+          <div className="relative hidden sm:block">
+
+            <button
+              type="button"
+              onClick={
+                handleNotificationToggle
+              }
+              className="relative rounded-xl border border-yellow-400/15 bg-black/30 p-2.5 text-zinc-300 transition hover:border-yellow-400/30 hover:bg-yellow-400/10 hover:text-yellow-400"
+            >
+
+              <Bell size={18} />
+
+              {/* UNREAD COUNT */}
+
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex min-w-[18px] h-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white shadow-[0_0_10px_rgba(239,68,68,0.45)]">
+                  {unreadNotificationCount > 99
+                    ? "99+"
+                    : unreadNotificationCount}
+                </span>
+              )}
+
+            </button>
+
+            {/* DESKTOP NOTIFICATION DROPDOWN */}
+
+            {notificationOpen && (
+              <div className="absolute right-0 top-[calc(100%+10px)] z-[60] w-[350px] overflow-hidden rounded-2xl border border-yellow-400/20 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+
+                {/* HEADER */}
+
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+
+                  <div>
+                    <p className="text-sm font-bold text-white">
+                      Notifications
+                    </p>
+
+                    <p className="text-[11px] text-zinc-500">
+                      Recent notifications
+                    </p>
+                  </div>
+
+                  {unreadNotificationCount > 0 && (
+                    <span className="rounded-full bg-yellow-400 px-2 py-1 text-[10px] font-black text-black">
+                      {unreadNotificationCount} unread
+                    </span>
+                  )}
+
+                </div>
+
+                {/* NOTIFICATIONS */}
+
+                <div className="max-h-[390px] overflow-y-auto">
+
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-10 text-center">
+
+                      <Bell
+                        size={26}
+                        className="mx-auto mb-3 text-zinc-600"
+                      />
+
+                      <p className="text-sm text-zinc-400">
+                        No notifications
+                      </p>
+
+                    </div>
+                  ) : (
+                    notifications.map(
+                      (notification) => {
+                        const read =
+                          isNotificationRead(
+                            notification,
+                          );
+
+                        return (
+                          <div
+                            key={notification.id}
+                            className={`border-b border-white/5 px-4 py-3 transition ${
+                              read
+                                ? "bg-transparent"
+                                : "bg-yellow-400/[0.04]"
+                            }`}
+                          >
+
+                            <div className="flex gap-3">
+
+                              {/* UNREAD DOT */}
+
+                              <div className="pt-1.5">
+
+                                {!read ? (
+                                  <span className="block h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                                ) : (
+                                  <span className="block h-2 w-2 rounded-full bg-zinc-700" />
+                                )}
+
+                              </div>
+
+                              {/* CONTENT */}
+
+                              <div className="min-w-0 flex-1">
+
+                                <p className="text-sm font-semibold text-white">
+                                  {notification.title ||
+                                    "Notification"}
+                                </p>
+
+                                <p className="mt-1 break-words text-xs leading-5 text-zinc-400">
+                                  {notification.message ||
+                                    ""}
+                                </p>
+
+                                <p className="mt-1 text-[10px] text-zinc-600">
+                                  {formatNotificationTime(
+                                    notification.createdAt,
+                                  )}
+                                </p>
+
+                                {/* OPTIONS */}
+
+                                <div className="mt-2 flex items-center gap-3">
+
+                                  {!read && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleMarkNotificationAsRead(
+                                          notification.id,
+                                        )
+                                      }
+                                      className="text-[11px] font-semibold text-yellow-400 transition hover:text-yellow-300"
+                                    >
+                                      Mark as read
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeleteNotification(
+                                        notification.id,
+                                      )
+                                    }
+                                    className="text-[11px] font-semibold text-red-400 transition hover:text-red-300"
+                                  >
+                                    Delete
+                                  </button>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+                        );
+                      },
+                    )
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+          {/* =================================================
+              MOBILE NOTIFICATION
+              RIGHT OF THRILL SEEKERS
+          ================================================== */}
+
+          <div className="relative sm:hidden">
+
+            <button
+              type="button"
+              onClick={
+                handleNotificationToggle
+              }
+              className="relative flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-[20px] border border-yellow-400/25 bg-black/35 text-yellow-100 shadow-[0_0_22px_rgba(250,204,21,0.08)] backdrop-blur-sm transition hover:border-yellow-400/45 hover:bg-yellow-400/10 hover:text-yellow-400"
+            >
+
+              <Bell
+                size={23}
+                strokeWidth={2}
+              />
+
+              {/* MOBILE UNREAD COUNT */}
+
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex min-w-[19px] h-[19px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white shadow-[0_0_10px_rgba(239,68,68,0.45)]">
+                  {unreadNotificationCount > 99
+                    ? "99+"
+                    : unreadNotificationCount}
+                </span>
+              )}
+
+            </button>
+
+            {/* MOBILE NOTIFICATION DROPDOWN */}
+
+            {notificationOpen && (
+
+                  <div className="fixed left-3 right-3 top-[112px] z-[60] w-auto max-w-none overflow-hidden rounded-2xl border border-yellow-400/20 bg-zinc-950/95 shadow-2xl backdrop-blur-xl">
+
+                {/* HEADER */}
+
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+
+                  <div>
+                    <p className="text-sm font-bold text-white">
+                      Notifications
+                    </p>
+
+                    <p className="text-[11px] text-zinc-500">
+                      Recent notifications
+                    </p>
+                  </div>
+
+                  {unreadNotificationCount > 0 && (
+                    <span className="rounded-full bg-yellow-400 px-2 py-1 text-[10px] font-black text-black">
+                      {unreadNotificationCount} unread
+                    </span>
+                  )}
+
+                </div>
+
+                {/* NOTIFICATIONS */}
+
+                <div className="max-h-[390px] overflow-y-auto">
+
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-10 text-center">
+
+                      <Bell
+                        size={26}
+                        className="mx-auto mb-3 text-zinc-600"
+                      />
+
+                      <p className="text-sm text-zinc-400">
+                        No notifications
+                      </p>
+
+                    </div>
+                  ) : (
+                    notifications.map(
+                      (notification) => {
+                        const read =
+                          isNotificationRead(
+                            notification,
+                          );
+
+                        return (
+                          <div
+                            key={notification.id}
+                            className={`border-b border-white/5 px-4 py-3 transition ${
+                              read
+                                ? "bg-transparent"
+                                : "bg-yellow-400/[0.04]"
+                            }`}
+                          >
+
+                            <div className="flex gap-3">
+
+                              {/* UNREAD DOT */}
+
+                              <div className="pt-1.5">
+
+                                {!read ? (
+                                  <span className="block h-2 w-2 rounded-full bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.7)]" />
+                                ) : (
+                                  <span className="block h-2 w-2 rounded-full bg-zinc-700" />
+                                )}
+
+                              </div>
+
+                              {/* CONTENT */}
+
+                              <div className="min-w-0 flex-1">
+
+                                <p className="text-sm font-semibold text-white">
+                                  {notification.title ||
+                                    "Notification"}
+                                </p>
+
+                                <p className="mt-1 break-words text-xs leading-5 text-zinc-400">
+                                  {notification.message ||
+                                    ""}
+                                </p>
+
+                                <p className="mt-1 text-[10px] text-zinc-600">
+                                  {formatNotificationTime(
+                                    notification.createdAt,
+                                  )}
+                                </p>
+
+                                {/* OPTIONS */}
+
+                                <div className="mt-2 flex items-center gap-3">
+
+                                  {!read && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleMarkNotificationAsRead(
+                                          notification.id,
+                                        )
+                                      }
+                                      className="text-[11px] font-semibold text-yellow-400 transition hover:text-yellow-300"
+                                    >
+                                      Mark as read
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleDeleteNotification(
+                                        notification.id,
+                                      )
+                                    }
+                                    className="text-[11px] font-semibold text-red-400 transition hover:text-red-300"
+                                  >
+                                    Delete
+                                  </button>
+
+                                </div>
+
+                              </div>
+
+                            </div>
+
+                          </div>
+                        );
+                      },
+                    )
+                  )}
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
 
           {/* =================================================
               DESKTOP USER
@@ -705,6 +1406,7 @@ export default function Navbar() {
                   >
 
                     <span className="flex items-center justify-between">
+
                       <span>
                         {item}
                       </span>
@@ -724,6 +1426,7 @@ export default function Navbar() {
                             {pendingPaymentCount}
                           </span>
                         )}
+
                     </span>
 
                   </button>

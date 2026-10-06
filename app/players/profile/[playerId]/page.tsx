@@ -36,6 +36,7 @@ interface Player {
   deviceName: string;
   konamiId: string;
   isAdmin: boolean;
+  ranking: number | null;
   createdAt?: string;
   updatedAt?: string;
   divisions?: Division[];
@@ -209,6 +210,8 @@ export default function PublicPlayerProfilePage() {
               Boolean(
                 playerData.isAdmin,
               ),
+            ranking:
+              playerData.ranking ?? null,
             createdAt:
               playerData.createdAt,
             updatedAt:
@@ -585,23 +588,6 @@ export default function PublicPlayerProfilePage() {
     );
   }
 
-  /* ==================================================
-     MEMBER SINCE
-  ================================================== */
-
-  const memberSince =
-    player.createdAt
-      ? new Date(
-          player.createdAt,
-        ).toLocaleDateString(
-          "en-US",
-          {
-            month: "long",
-            year: "numeric",
-          },
-        )
-      : "—";
-
   return (
     <main className="min-h-screen bg-[#080808] text-white">
 
@@ -665,12 +651,40 @@ export default function PublicPlayerProfilePage() {
                       {player.playerId}
                     </span>
 
-                    <span className="flex items-center gap-1.5 text-zinc-500">
-                      <CalendarDays
-                        size={15}
-                      />
-                      Member since{" "}
-                      {memberSince}
+                    <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5 font-semibold text-yellow-400">
+                      Rank #{player.ranking ?? "—"}
+                    </span>
+
+                    <span className="flex items-center gap-2 text-zinc-400">
+                      <span className="font-semibold text-zinc-500">Recent Form</span>
+                      {recentMatches.length > 0 ? (
+                        recentMatches
+                          .slice()
+                          .reverse()
+                          .map((match) => {
+                            const isHome = match.homePlayerId === player.playerId;
+                            const myScore = isHome ? match.homeScore ?? 0 : match.awayScore ?? 0;
+                            const opponentScore = isHome ? match.awayScore ?? 0 : match.homeScore ?? 0;
+                            const result = myScore > opponentScore ? "W" : myScore < opponentScore ? "L" : "D";
+
+                            return (
+                              <span
+                                key={match.id}
+                                className={`font-extrabold ${
+                                  result === "W"
+                                    ? "text-green-400"
+                                    : result === "D"
+                                      ? "text-yellow-400"
+                                      : "text-red-400"
+                                }`}
+                              >
+                                {result}
+                              </span>
+                            );
+                          })
+                      ) : (
+                        <span className="text-zinc-600">—</span>
+                      )}
                     </span>
 
                   </div>

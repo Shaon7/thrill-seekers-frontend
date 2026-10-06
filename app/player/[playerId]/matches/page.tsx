@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Loader2,
   Shield,
+  Download,
 } from "lucide-react";
 
 /* ================================================== */
@@ -633,6 +634,860 @@ export default function MatchesPage() {
     );
   };
 
+    // ==================================================
+  // DOWNLOAD NEXT 10 FIXTURE
+  // ==================================================
+
+  const downloadFixture = async () => {
+    if (!player) {
+      return;
+    }
+
+    const upcomingFixtures = [...matches]
+      .filter(
+        (match) =>
+          match.status === "SCHEDULED" ||
+          match.status === "RESCHEDULED",
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.deadline).getTime() -
+          new Date(b.deadline).getTime(),
+      )
+      .slice(0, 10);
+
+      const fixtureCount = upcomingFixtures.length;
+
+    if (upcomingFixtures.length === 0) {
+      window.alert(
+        "You currently have no upcoming matches.",
+      );
+      return;
+    }
+
+    try {
+      const { jsPDF } = await import("jspdf");
+      const { default: autoTable } =
+        await import("jspdf-autotable");
+
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth =
+        doc.internal.pageSize.getWidth();
+
+      const pageHeight =
+        doc.internal.pageSize.getHeight();
+
+      // -----------------------------------------------
+      // COLORS
+      // -----------------------------------------------
+
+      const navy = [7, 11, 23] as [
+        number,
+        number,
+        number,
+      ];
+
+      const purple = [91, 33, 182] as [
+        number,
+        number,
+        number,
+      ];
+
+      const blue = [37, 99, 235] as [
+        number,
+        number,
+        number,
+      ];
+
+      const cyan = [6, 182, 212] as [
+        number,
+        number,
+        number,
+      ];
+
+      const gold = [250, 204, 21] as [
+        number,
+        number,
+        number,
+      ];
+
+      const white = [255, 255, 255] as [
+        number,
+        number,
+        number,
+      ];
+
+      const darkText = [30, 41, 59] as [
+        number,
+        number,
+        number,
+      ];
+
+      const lightBackground = [248, 250, 252] as [
+        number,
+        number,
+        number,
+      ];
+
+      // -----------------------------------------------
+      // BACKGROUND
+      // -----------------------------------------------
+
+      doc.setFillColor(
+        lightBackground[0],
+        lightBackground[1],
+        lightBackground[2],
+      );
+
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        pageHeight,
+        "F",
+      );
+
+      // -----------------------------------------------
+      // TOP HEADER
+      // -----------------------------------------------
+
+      doc.setFillColor(
+        navy[0],
+        navy[1],
+        navy[2],
+      );
+
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        52,
+        "F",
+      );
+
+      // Purple accent
+
+      doc.setFillColor(
+        purple[0],
+        purple[1],
+        purple[2],
+      );
+
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        4,
+        "F",
+      );
+
+      // Cyan accent
+
+      doc.setFillColor(
+        cyan[0],
+        cyan[1],
+        cyan[2],
+      );
+
+      doc.rect(
+        0,
+        48,
+        pageWidth,
+        4,
+        "F",
+      );
+
+      // -----------------------------------------------
+      // LOGO
+      // -----------------------------------------------
+
+      try {
+        const imageResponse =
+          await fetch("/icon.png");
+
+        const imageBlob =
+          await imageResponse.blob();
+
+        const imageData =
+          await new Promise<string>(
+            (resolve, reject) => {
+              const reader =
+                new FileReader();
+
+              reader.onloadend = () => {
+                resolve(
+                  String(
+                    reader.result,
+                  ),
+                );
+              };
+
+              reader.onerror = reject;
+
+              reader.readAsDataURL(
+                imageBlob,
+              );
+            },
+          );
+
+        doc.addImage(
+          imageData,
+          "PNG",
+          14,
+          10,
+          29,
+          29,
+        );
+      } catch (error) {
+        console.error(
+          "Could not load fixture logo:",
+          error,
+        );
+      }
+
+      // -----------------------------------------------
+      // HEADER TEXT
+      // -----------------------------------------------
+
+      doc.setTextColor(
+        gold[0],
+        gold[1],
+        gold[2],
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(20);
+
+      doc.text(
+        "THRILL SEEKERS",
+        48,
+        19,
+      );
+
+      doc.setTextColor(
+        white[0],
+        white[1],
+        white[2],
+      );
+
+      doc.setFontSize(10);
+
+      doc.text(
+        "eFOOTBALL CLUB",
+        49,
+        27,
+      );
+
+      doc.setFontSize(16);
+
+      doc.text(
+        "MATCH FIXTURE",
+        pageWidth - 14,
+        19,
+        {
+          align: "right",
+        },
+      );
+
+      doc.setFontSize(8);
+
+      doc.setTextColor(
+        203,
+        213,
+        225,
+      );
+
+      doc.text(
+        "UPCOMING MATCH SCHEDULE",
+        pageWidth - 14,
+        27,
+        {
+          align: "right",
+        },
+      );
+
+      // -----------------------------------------------
+      // IMPORTANT NOTE
+      // -----------------------------------------------
+
+      doc.setFillColor(
+        255,
+        247,
+        237,
+      );
+
+      doc.setDrawColor(
+        gold[0],
+        gold[1],
+        gold[2],
+      );
+
+      doc.setLineWidth(0.5);
+
+      doc.roundedRect(
+        14,
+        61,
+        pageWidth - 28,
+        17,
+        3,
+        3,
+        "FD",
+      );
+
+      doc.setTextColor(
+        146,
+        64,
+        14,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(10);
+
+      doc.text(
+         `NB: This is your next ${fixtureCount} match fixture, not all match fixture.`,
+        pageWidth / 2,
+        71.5,
+        {
+          align: "center",
+        },
+      );
+
+      // -----------------------------------------------
+      // PLAYER INFORMATION
+      // -----------------------------------------------
+
+      doc.setFillColor(
+        255,
+        255,
+        255,
+      );
+
+      doc.setDrawColor(
+        226,
+        232,
+        240,
+      );
+
+      doc.roundedRect(
+        14,
+        85,
+        pageWidth - 28,
+        30,
+        4,
+        4,
+        "FD",
+      );
+
+      doc.setTextColor(
+        100,
+        116,
+        139,
+      );
+
+      doc.setFontSize(8);
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.text(
+        "PLAYER",
+        20,
+        94,
+      );
+
+      doc.text(
+        "PLAYER ID",
+        105,
+        94,
+      );
+
+      doc.text(
+        "FIXTURES",
+        pageWidth - 20,
+        94,
+        {
+          align: "right",
+        },
+      );
+
+      doc.setTextColor(
+        darkText[0],
+        darkText[1],
+        darkText[2],
+      );
+
+      doc.setFontSize(12);
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.text(
+        player.name,
+        20,
+        104,
+      );
+
+      doc.setFontSize(10);
+
+      doc.text(
+        player.playerId,
+        105,
+        104,
+      );
+
+      doc.setTextColor(
+        blue[0],
+        blue[1],
+        blue[2],
+      );
+
+      doc.setFontSize(11);
+
+      doc.text(
+        `${upcomingFixtures.length} UPCOMING`,
+        pageWidth - 20,
+        104,
+        {
+          align: "right",
+        },
+      );
+
+      // -----------------------------------------------
+      // SMALL SECTION LABEL
+      // -----------------------------------------------
+
+      doc.setTextColor(
+        purple[0],
+        purple[1],
+        purple[2],
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(9);
+
+      doc.text(
+        "NEXT 10 FIXTURES",
+        14,
+        127,
+      );
+
+      doc.setDrawColor(
+        203,
+        213,
+        225,
+      );
+
+      doc.setLineWidth(0.4);
+
+      doc.line(
+        14,
+        130,
+        pageWidth - 14,
+        130,
+      );
+
+      // -----------------------------------------------
+      // TABLE DATA
+      // -----------------------------------------------
+
+      const tableBody =
+        upcomingFixtures.map(
+          (match, index) => {
+            const homePlayer =
+              playersById[
+                match.homePlayerId
+              ];
+
+            const awayPlayer =
+              playersById[
+                match.awayPlayerId
+              ];
+
+            const isHome =
+              match.homePlayerId ===
+              player.playerId;
+
+            const opponent =
+              isHome
+                ? awayPlayer?.name ||
+                  match.awayPlayerId
+                : homePlayer?.name ||
+                  match.homePlayerId;
+
+            const fixture =
+              `${player.name}  vs  ${opponent}`;
+
+            const position =
+              isHome
+                ? "HOME"
+                : "AWAY";
+
+            const deadlineDate =
+              new Date(
+                match.deadline,
+              );
+
+            const matchDay =
+              new Date(
+                deadlineDate,
+              );
+
+            matchDay.setDate(
+              matchDay.getDate() - 1,
+            );
+
+            const matchDayText =
+              matchDay.toLocaleDateString(
+                undefined,
+                {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                },
+              );
+
+            const deadlineText =
+              `${deadlineDate.toLocaleDateString(
+                undefined,
+                {
+                  day: "2-digit",
+                  month: "short",
+                },
+              )} ${deadlineDate.toLocaleTimeString(
+                undefined,
+                {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                },
+              )}`;
+
+            return [
+              String(index + 1).padStart(
+                2,
+                "0",
+              ),
+              `Round ${match.round}`,
+              fixture,
+              position,
+              matchDayText,
+              deadlineText,
+            ];
+          },
+        );
+
+      // -----------------------------------------------
+      // FIXTURE TABLE
+      // -----------------------------------------------
+
+      autoTable(doc, {
+        startY: 135,
+
+        head: [[
+          "#",
+          "ROUND",
+          "FIXTURE",
+          "POSITION",
+          "MATCH DAY",
+          "DEADLINE",
+        ]],
+
+        body: tableBody,
+
+        margin: {
+          left: 14,
+          right: 14,
+        },
+
+        styles: {
+          font: "helvetica",
+          fontSize: 8.5,
+          cellPadding: 4,
+          textColor: darkText,
+          lineColor: [
+            226,
+            232,
+            240,
+          ],
+          lineWidth: 0.25,
+          valign: "middle",
+        },
+
+        headStyles: {
+          fillColor: navy,
+          textColor: white,
+          fontStyle: "bold",
+          fontSize: 8,
+          halign: "center",
+          valign: "middle",
+          cellPadding: 4,
+        },
+
+        alternateRowStyles: {
+          fillColor: [
+            241,
+            245,
+            249,
+          ],
+        },
+
+        bodyStyles: {
+          fillColor: white,
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 10,
+            halign: "center",
+            fontStyle: "bold",
+          },
+
+          1: {
+            cellWidth: 22,
+            halign: "center",
+          },
+
+          2: {
+            cellWidth: 60,
+            fontStyle: "bold",
+          },
+
+          3: {
+            cellWidth: 20,
+            halign: "center",
+            fontStyle: "bold",
+            textColor: blue,
+          },
+
+          4: {
+            cellWidth: 31,
+            halign: "center",
+          },
+
+          5: {
+            cellWidth: 35,
+            halign: "center",
+          },
+        },
+
+        didParseCell: (data) => {
+          if (
+            data.section ===
+            "body" &&
+            data.column.index === 3
+          ) {
+            const value =
+              String(data.cell.raw);
+
+            if (value === "HOME") {
+              data.cell.styles.textColor =
+                blue;
+
+              data.cell.styles.fillColor =
+                [219, 234, 254];
+            }
+
+            if (value === "AWAY") {
+              data.cell.styles.textColor =
+                [147, 51, 234];
+
+              data.cell.styles.fillColor =
+                [243, 232, 255];
+            }
+          }
+        },
+
+        didDrawPage: (data) => {
+          const currentPage = data.pageNumber;
+
+          // Footer
+
+          doc.setDrawColor(
+            226,
+            232,
+            240,
+          );
+
+          doc.setLineWidth(0.3);
+
+          doc.line(
+            14,
+            pageHeight - 18,
+            pageWidth - 14,
+            pageHeight - 18,
+          );
+
+          doc.setFont(
+            "helvetica",
+            "normal",
+          );
+
+          doc.setFontSize(7.5);
+
+          doc.setTextColor(
+            100,
+            116,
+            139,
+          );
+
+          doc.text(
+            "Thrill Seekers • eFootball Club",
+            14,
+            pageHeight - 11,
+          );
+
+          doc.text(
+            `Page ${currentPage}`,
+            pageWidth - 14,
+            pageHeight - 11,
+            {
+              align: "right",
+            },
+          );
+
+          doc.text(
+            new Date().toLocaleDateString(
+              undefined,
+              {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              },
+            ),
+            pageWidth / 2,
+            pageHeight - 11,
+            {
+              align: "center",
+            },
+          );
+        },
+      });
+
+      // -----------------------------------------------
+      // FINAL FOOTER BADGE
+      // -----------------------------------------------
+
+      const finalY =
+        (doc as any).lastAutoTable?.finalY ||
+        135;
+
+      if (
+        finalY < pageHeight - 55
+      ) {
+        const boxY = finalY + 12;
+
+        doc.setFillColor(
+          239,
+          246,
+          255,
+        );
+
+        doc.setDrawColor(
+          blue[0],
+          blue[1],
+          blue[2],
+        );
+
+        doc.roundedRect(
+          14,
+          boxY,
+          pageWidth - 28,
+          24,
+          4,
+          4,
+          "FD",
+        );
+
+        doc.setTextColor(
+          blue[0],
+          blue[1],
+          blue[2],
+        );
+
+        doc.setFont(
+          "helvetica",
+          "bold",
+        );
+
+        doc.setFontSize(9);
+
+        doc.text(
+          "MATCH DAY REMINDER",
+          20,
+          boxY + 9,
+        );
+
+        doc.setTextColor(
+          71,
+          85,
+          105,
+        );
+
+        doc.setFont(
+          "helvetica",
+          "normal",
+        );
+
+        doc.setFontSize(8);
+
+        doc.text(
+          "Please complete every fixture before its deadline.",
+          20,
+          boxY + 16,
+        );
+      }
+
+      // -----------------------------------------------
+      // DOWNLOAD
+      // -----------------------------------------------
+
+      const safePlayerName =
+        player.name
+          .trim()
+          .replace(
+            /[^a-zA-Z0-9]+/g,
+            "-",
+          )
+          .replace(
+            /^-+|-+$/g,
+            "",
+          );
+
+      doc.save(
+        `Thrill-Seekers-${safePlayerName}-Fixture.pdf`,
+      );
+    } catch (error) {
+      console.error(
+        "Fixture PDF generation error:",
+        error,
+      );
+
+      window.alert(
+        "Unable to generate the fixture PDF.",
+      );
+    }
+  };
+
   /* ==================================================
      LOADING
   ================================================== */
@@ -739,6 +1594,15 @@ export default function MatchesPage() {
                 </span>
                 .
               </p>
+
+              <button
+  type="button"
+  onClick={downloadFixture}
+  className="mt-5 inline-flex items-center gap-2 rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-5 py-3 text-sm font-bold text-yellow-400 transition hover:border-yellow-400/40 hover:bg-yellow-400/20 hover:text-yellow-300"
+>
+  <Download size={17} />
+  Download Fixture
+</button>
 
             </div>
           </div>

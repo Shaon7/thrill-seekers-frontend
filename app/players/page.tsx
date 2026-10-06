@@ -11,9 +11,11 @@ import {
   Loader2,
   AlertCircle,
   ArrowRight,
+  Search,
 } from "lucide-react";
 
-const API_URL = "https://thrill-seekers-backend-production.up.railway.app";
+const API_URL =
+  "https://thrill-seekers-backend-production.up.railway.app";
 
 interface Player {
   id: number;
@@ -28,19 +30,32 @@ interface Player {
   password?: string;
   passwordResetCode?: string | null;
   passwordResetCodeExpiresAt?: string | null;
+  ranking?: number | null;
 }
 
 export default function PlayersPage() {
   const router = useRouter();
 
-  const [players, setPlayers] =
-    useState<Player[]>([]);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const filteredPlayers = [...players]
+    .filter((player) =>
+      `${player.name} ${player.playerId}`
+        .toLowerCase()
+        .includes(search.toLowerCase().trim())
+    )
+    .sort((a, b) => {
+      // Players with no ranking go to the bottom
+      if (a.ranking == null && b.ranking == null) return 0;
+      if (a.ranking == null) return 1;
+      if (b.ranking == null) return -1;
 
-  const [error, setError] =
-    useState("");
+      // Lower ranking number = higher position
+      return a.ranking - b.ranking;
+    });
 
   // =====================================================
   // LOAD ALL PLAYERS
@@ -53,62 +68,42 @@ export default function PlayersPage() {
         setLoading(true);
         setError("");
 
-        const response =
-          await fetch(
-            `${API_URL}/player`,
-            {
-              method: "GET",
-              cache: "no-store",
-            },
-          );
+        const response = await fetch(`${API_URL}/player`, {
+          method: "GET",
+          cache: "no-store",
+        });
 
         let data: any = null;
 
         try {
-          data =
-            await response.json();
+          data = await response.json();
         } catch {
           data = null;
         }
 
         if (!response.ok) {
-          const message =
-            Array.isArray(
-              data?.message,
-            )
-              ? data.message.join(
-                  ", ",
-                )
-              : data?.message ||
-                `Failed to load players. HTTP ${response.status}`;
+          const message = Array.isArray(data?.message)
+            ? data.message.join(", ")
+            : data?.message ||
+              `Failed to load players. HTTP ${response.status}`;
 
-          throw new Error(
-            message,
-          );
+          throw new Error(message);
         }
 
-        const playerData: Player[] =
-          Array.isArray(data)
-            ? data
-            : Array.isArray(
-                data?.data,
-              )
-              ? data.data
-              : [];
+        const playerData: Player[] = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.data)
+            ? data.data
+            : [];
 
-        setPlayers(
-          playerData,
-        );
+        setPlayers(playerData);
       } catch (error) {
-        console.error(
-          "Players page error:",
-          error,
-        );
+        console.error("Players page error:", error);
 
         setError(
           error instanceof Error
             ? error.message
-            : "Failed to load players.",
+            : "Failed to load players."
         );
       } finally {
         setLoading(false);
@@ -207,9 +202,7 @@ export default function PlayersPage() {
                 <div className="flex items-center gap-3">
 
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-yellow-400/20 bg-yellow-400/10 text-yellow-400">
-                    <Users
-                      size={25}
-                    />
+                    <Users size={25} />
                   </div>
 
                   <div>
@@ -260,7 +253,6 @@ export default function PlayersPage() {
 
         {players.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-10 text-center">
-
             <Users
               size={38}
               className="mx-auto text-zinc-600"
@@ -273,84 +265,207 @@ export default function PlayersPage() {
             <p className="mt-2 text-sm text-zinc-600">
               There are no players available right now.
             </p>
-
           </div>
         ) : (
           <section>
 
-            <div className="mb-5">
-              <p className="text-xs font-semibold tracking-[0.2em] text-yellow-400">
-                CLUB MEMBERS
-              </p>
+            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 
-              <h2 className="mt-1 text-2xl font-bold">
-                All Players
-              </h2>
+              <div>
+                <p className="text-xs font-semibold tracking-[0.2em] text-yellow-400">
+                  CLUB MEMBERS
+                </p>
+
+                <h2 className="mt-1 text-2xl font-bold">
+                  All Players
+                </h2>
+              </div>
+
+              <div className="relative w-full sm:max-w-xs">
+                <Search
+                  size={17}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                />
+
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search player..."
+                  className="w-full rounded-xl border border-white/10 bg-zinc-900/80 py-3 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-400/40"
+                />
+              </div>
+
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black">
 
-              {players.map(
-                (player) => (
-                  <div
-                    key={player.id}
-                    className="group relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-5 transition hover:border-yellow-400/20 sm:p-6"
-                  >
+              {/* =================================================
+                  DESKTOP TABLE
+              ================================================= */}
 
-                    <div className="absolute -right-16 -top-16 h-32 w-32 rounded-full bg-yellow-400/5 blur-3xl transition group-hover:bg-yellow-400/10" />
+              <div className="hidden sm:block">
 
-                    <div className="relative flex items-center justify-between gap-4">
+                <table className="w-full text-left">
 
-                      <div className="flex min-w-0 items-center gap-4">
+                  <thead className="border-b border-white/10 bg-white/[0.03]">
 
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-zinc-400">
-                          <User
-                            size={24}
-                          />
+                    <tr>
+
+                      <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                        Player Name
+                      </th>
+
+                      <th className="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                        Ranking
+                      </th>
+
+                      <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                        Profile
+                      </th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {filteredPlayers.length > 0 ? (
+                      filteredPlayers.map((player) => (
+
+                        <tr
+                          key={player.id}
+                          className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]"
+                        >
+
+                          <td className="px-5 py-4">
+                            <span className="font-semibold text-white">
+                              {player.name}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <span className="font-bold text-yellow-400">
+                              {player.ranking ?? "—"}
+                            </span>
+                          </td>
+
+                          <td className="px-5 py-4 text-right">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                router.push(
+                                  `/players/profile/${player.playerId}`
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-yellow-300"
+                            >
+                              Visit Profile
+                              <ArrowRight size={16} />
+                            </button>
+
+                          </td>
+
+                        </tr>
+
+                      ))
+                    ) : (
+
+                      <tr>
+
+                        <td
+                          colSpan={3}
+                          className="px-5 py-10 text-center text-sm text-zinc-500"
+                        >
+                          No players match your search.
+                        </td>
+
+                      </tr>
+
+                    )}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              {/* =================================================
+                  MOBILE PLAYERS
+              ================================================= */}
+
+              <div className="sm:hidden">
+
+                {filteredPlayers.length > 0 ? (
+
+                  <div className="divide-y divide-white/5">
+
+                    {filteredPlayers.map((player) => (
+
+                      <div
+                        key={player.id}
+                        className="grid grid-cols-[60px_1fr_auto] items-center gap-3 p-4"
+                      >
+
+                        {/* Ranking */}
+
+                        <div className="text-center">
+
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                            Rank
+                          </p>
+
+                          <p className="mt-1 text-lg font-black text-yellow-400">
+                            {player.ranking ?? "—"}
+                          </p>
+
                         </div>
+
+                        {/* Player Name */}
 
                         <div className="min-w-0">
 
-                          <p className="truncate text-lg font-bold text-white">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
+                            Player
+                          </p>
+
+                          <p className="mt-1 truncate text-sm font-semibold text-white">
                             {player.name}
                           </p>
 
-                          <div className="mt-1 flex items-center gap-2">
-
-                            <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
-                              Player ID
-                            </span>
-
-                            <span className="text-sm font-semibold text-zinc-400">
-                              {player.playerId}
-                            </span>
-
-                          </div>
-
                         </div>
+
+                        {/* Profile */}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(
+                              `/players/profile/${player.playerId}`
+                            )
+                          }
+                          className="inline-flex shrink-0 items-center justify-center rounded-xl bg-yellow-400 p-2.5 text-black transition hover:bg-yellow-300"
+                          aria-label={`Visit ${player.name}'s profile`}
+                        >
+                          <ArrowRight size={17} />
+                        </button>
 
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          router.push(
-                            `/players/profile/${player.playerId}`,
-                          )
-                        }
-                        className="flex shrink-0 items-center gap-2 rounded-xl bg-yellow-400 px-4 py-3 text-sm font-bold text-black transition hover:bg-yellow-300"
-                      >
-                        Profile
-                        <ArrowRight
-                          size={16}
-                        />
-                      </button>
-
-                    </div>
+                    ))}
 
                   </div>
-                ),
-              )}
+
+                ) : (
+
+                  <div className="px-5 py-10 text-center text-sm text-zinc-500">
+                    No players match your search.
+                  </div>
+
+                )}
+
+              </div>
 
             </div>
 
@@ -364,6 +479,7 @@ export default function PlayersPage() {
         <section className="mt-10">
 
           <div className="mb-5">
+
             <p className="text-xs font-semibold tracking-[0.2em] text-yellow-400">
               ACHIEVEMENTS
             </p>
@@ -371,6 +487,7 @@ export default function PlayersPage() {
             <h2 className="mt-1 text-2xl font-bold">
               Club Achievements
             </h2>
+
           </div>
 
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-8 sm:p-10">
@@ -380,9 +497,7 @@ export default function PlayersPage() {
             <div className="relative text-center">
 
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-yellow-400/20 bg-yellow-400/10 text-yellow-400">
-                <Trophy
-                  size={30}
-                />
+                <Trophy size={30} />
               </div>
 
               <h3 className="mt-5 text-lg font-bold text-zinc-300">

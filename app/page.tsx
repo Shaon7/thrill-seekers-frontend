@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
@@ -57,9 +57,93 @@ const paragraphWordVariants:Variants = {
   },
 };
 
+interface CobegFixture {
+  team: "Main" | "Academy";
+  opponent: string;
+  date: string;
+  dateValue: string | null;
+}
+
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] =
     useState(false);
+
+  const [cobegFixtures, setCobegFixtures] =
+    useState<{ main: CobegFixture[]; academy: CobegFixture[] }>({
+      main: [],
+      academy: [],
+    });
+
+  const [cobegLoading, setCobegLoading] =
+    useState(true);
+
+  const [cobegError, setCobegError] =
+    useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCobegFixtures = async () => {
+      try {
+        setCobegLoading(true);
+        setCobegError("");
+
+        const response = await fetch(
+          "/api/cobeg-fixtures",
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            "Unable to load COBEG fixtures."
+          );
+        }
+
+        const data = await response.json();
+
+        if (!cancelled) {
+          setCobegFixtures({
+            main: Array.isArray(data?.main)
+              ? data.main
+              : [],
+            academy: Array.isArray(data?.academy)
+              ? data.academy
+              : [],
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "COBEG fixtures loading error:",
+            error
+          );
+
+          setCobegError(
+            "Unable to load live COBEG fixtures right now."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setCobegLoading(false);
+        }
+      }
+    };
+
+    loadCobegFixtures();
+
+    const interval = window.setInterval(
+      loadCobegFixtures,
+      60_000
+    );
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#070b17] text-white selection:bg-blue-500 selection:text-white">
@@ -689,7 +773,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ================= CLUB INTRO ================= */}
+      {/* ================= COBEG FIXTURES ================= */}
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
 
@@ -712,96 +796,54 @@ export default function Home() {
           className="mb-8 sm:mb-10"
         >
           <p className="text-center text-xs font-bold tracking-[0.3em] text-blue-400 sm:text-left sm:text-sm">
-            THE CLUB
+            COBEG FIXTURES
           </p>
 
           <h2 className="mt-2 text-center text-3xl font-black sm:mt-3 sm:text-left sm:text-4xl">
-            More than just a team.
+            Upcoming Matches
           </h2>
 
           <p className="mt-2 max-w-2xl text-center text-sm text-gray-400 sm:mt-3 sm:text-left sm:text-base">
-            Every match tells a story. Every victory adds to our legacy.
+            Live upcoming fixtures for Thrill Seekers Main Team and Academy.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-3">
-
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 30,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{
-              once: true,
-              amount: 0.15,
-            }}
-            transition={{
-              duration: 0.6,
-              delay: 0.05,
-            }}
-          >
-            <Feature
-              icon="⚽"
-              title="Competitive"
-              description="We play every match with one goal — to win."
+        {cobegLoading ? (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <CobegTeamFixtureGroup
+              team="Main"
+              fixtures={[]}
+              loading
             />
-          </motion.div>
 
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 30,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{
-              once: true,
-              amount: 0.15,
-            }}
-            transition={{
-              duration: 0.6,
-              delay: 0.15,
-            }}
-          >
-            <Feature
-              icon="🏆"
-              title="Ambitious"
-              description="From local battles to the biggest competitions."
+            <CobegTeamFixtureGroup
+              team="Academy"
+              fixtures={[]}
+              loading
             />
-          </motion.div>
-
+          </div>
+        ) : cobegError ? (
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 30,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
-            viewport={{
-              once: true,
-              amount: 0.15,
-            }}
-            transition={{
-              duration: 0.6,
-              delay: 0.25,
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            className="rounded-3xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-300"
           >
-            <Feature
-              icon="🔥"
-              title="Fearless"
-              description="We never stop attacking. We never stop believing."
-            />
+            {cobegError}
           </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <CobegTeamFixtureGroup
+              team="Main"
+              fixtures={cobegFixtures.main.slice(0, 2)}
+            />
 
-        </div>
+            <CobegTeamFixtureGroup
+              team="Academy"
+              fixtures={cobegFixtures.academy.slice(0, 2)}
+            />
+          </div>
+        )}
       </section>
 
       {/* ================= RANKING OVERVIEW ================= */}
@@ -1126,30 +1168,126 @@ function Stat({
   );
 }
 
-function Feature({
-  icon,
-  title,
-  description,
+function CobegTeamFixtureGroup({
+  team,
+  fixtures,
+  loading = false,
 }: {
-  icon: string;
-  title: string;
-  description: string;
+  team: "Main" | "Academy";
+  fixtures: CobegFixture[];
+  loading?: boolean;
 }) {
   return (
-    <div className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-all duration-500 hover:-translate-y-2 hover:border-blue-500/40 hover:bg-white/[0.06] hover:shadow-xl hover:shadow-blue-500/5 sm:rounded-3xl sm:p-7">
+    <motion.div
+      initial={{
+        opacity: 0,
+        y: 30,
+      }}
+      whileInView={{
+        opacity: 1,
+        y: 0,
+      }}
+      viewport={{
+        once: true,
+        amount: 0.15,
+      }}
+      transition={{
+        duration: 0.6,
+      }}
+      className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 sm:p-6"
+    >
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-blue-400 sm:text-xs">
+            COBEG
+          </p>
+          <h3 className="mt-1 text-xl font-black sm:text-2xl">
+            {team} Team
+          </h3>
+        </div>
 
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-xl transition-transform duration-500 group-hover:scale-110 group-hover:bg-blue-500/20 sm:mb-6 sm:h-12 sm:w-12 sm:rounded-2xl sm:text-2xl">
-        {icon}
+        <span className="rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-blue-300">
+          Upcoming
+        </span>
       </div>
 
-      <h3 className="text-lg font-black transition-colors duration-300 group-hover:text-blue-400 sm:text-xl">
-        {title}
-      </h3>
+      <div className="space-y-3">
+        {loading ? (
+          <>
+            <CobegFixtureSkeleton />
+            <CobegFixtureSkeleton />
+          </>
+        ) : fixtures.length > 0 ? (
+          fixtures.map((fixture, index) => (
+            <motion.div
+              key={`${team}-${fixture.opponent}-${fixture.date}-${index}`}
+              initial={{
+                opacity: 0,
+                x: -18,
+              }}
+              whileInView={{
+                opacity: 1,
+                x: 0,
+              }}
+              viewport={{
+                once: true,
+                amount: 0.1,
+              }}
+              transition={{
+                duration: 0.45,
+                delay: index * 0.08,
+              }}
+              className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/30 hover:bg-white/[0.04]"
+            >
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500">
+                  Match {index + 1}
+                </p>
 
-      <p className="mt-2 text-xs leading-5 text-gray-400 sm:mt-3 sm:text-sm sm:leading-6">
-        {description}
-      </p>
+                <p className="mt-1 truncate text-sm font-bold sm:text-base">
+                  Thrill Seekers {team === "Academy" ? "Academy" : ""}
+                </p>
 
+                <p className="mt-0.5 truncate text-xs text-gray-500 sm:text-sm">
+                  vs {fixture.opponent}
+                </p>
+              </div>
+
+              <div className="shrink-0 text-right">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500">
+                  Date
+                </p>
+
+                <p className="mt-1 text-sm font-black text-white sm:text-base">
+                  {fixture.date}
+                </p>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-5 text-sm text-gray-500">
+            No upcoming COBEG fixtures available.
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function CobegFixtureSkeleton() {
+  return (
+    <div className="animate-pulse rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <div className="h-2.5 w-16 rounded bg-white/10" />
+          <div className="mt-3 h-4 w-40 rounded bg-white/10" />
+          <div className="mt-2 h-3 w-28 rounded bg-white/5" />
+        </div>
+        <div className="w-20">
+          <div className="ml-auto h-2.5 w-10 rounded bg-white/10" />
+          <div className="mt-3 ml-auto h-4 w-16 rounded bg-white/10" />
+        </div>
+      </div>
     </div>
   );
 }

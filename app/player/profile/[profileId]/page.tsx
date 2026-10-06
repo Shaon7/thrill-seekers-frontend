@@ -20,7 +20,6 @@ import {
   ArrowRight,
   Loader2,
   ShieldAlert,
-  CalendarDays,
   Medal,
   Star,
 } from "lucide-react";
@@ -38,6 +37,8 @@ interface Player {
   deviceName: string;
   konamiId: string;
   isAdmin: boolean;
+  rating: number;
+  ranking: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -86,6 +87,38 @@ interface PlayerStats {
   losses: number;
   goals: number;
   winRate: number;
+}
+
+/* ================================================== */
+/* MATCH RESULT */
+/* ================================================== */
+
+function getMatchResult(
+  match: Match,
+  playerId: string
+): "W" | "D" | "L" {
+  const isHome =
+    match.homePlayerId === playerId;
+
+  const myScore =
+    isHome
+      ? match.homeScore ?? 0
+      : match.awayScore ?? 0;
+
+  const opponentScore =
+    isHome
+      ? match.awayScore ?? 0
+      : match.homeScore ?? 0;
+
+  if (myScore > opponentScore) {
+    return "W";
+  }
+
+  if (myScore < opponentScore) {
+    return "L";
+  }
+
+  return "D";
 }
 
 /* ================================================== */
@@ -895,19 +928,6 @@ export default function PlayerProfilePage() {
     return null;
   }
 
-  const memberSince =
-    player.createdAt
-      ? new Date(
-          player.createdAt
-        ).toLocaleDateString(
-          "en-US",
-          {
-            month: "long",
-            year: "numeric",
-          }
-        )
-      : "—";
-
   return (
     <main className="min-h-screen bg-[#080808] text-white">
 
@@ -961,10 +981,53 @@ export default function PlayerProfilePage() {
                       {player.playerId}
                     </span>
 
-                    <span className="flex items-center gap-1.5 text-zinc-500">
-                      <CalendarDays size={15} />
-                      Member since {memberSince}
+                    <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5 font-semibold text-yellow-400">
+                      Rank #{player.ranking ?? "—"}
                     </span>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+                        Recent form
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        {[...recentMatches]
+                          .reverse()
+                          .map((match) => {
+                            const result = getMatchResult(
+                              match,
+                              player.playerId
+                            );
+
+                            const resultClass =
+                              result === "W"
+                                ? "border-green-400/20 bg-green-400/10 text-green-400"
+                                : result === "D"
+                                  ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-400"
+                                  : "border-red-400/20 bg-red-400/10 text-red-400";
+
+                            return (
+                              <span
+                                key={match.id}
+                                title={
+                                  result === "W"
+                                    ? "Win"
+                                    : result === "D"
+                                      ? "Draw"
+                                      : "Loss"
+                                }
+                                className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold ${resultClass}`}
+                              >
+                                {result}
+                              </span>
+                            );
+                          })}
+
+                        {recentMatches.length === 0 && (
+                          <span className="text-zinc-600">—</span>
+                        )}
+                      </div>
+                    </div>
 
                   </div>
                 </div>
