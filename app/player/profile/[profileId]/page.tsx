@@ -22,6 +22,9 @@ import {
   ShieldAlert,
   Medal,
   Star,
+  Crown,
+  Award,
+  Flame,
 } from "lucide-react";
 
 /* ================================================== */
@@ -975,19 +978,56 @@ export default function PlayerProfilePage() {
                     {player.name}
                   </h1>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
 
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-zinc-300">
+                    {/* PLAYER TAG BADGE */}
+                    <span className="rounded-xl border border-white/10 bg-zinc-900/90 px-3.5 py-1.5 font-mono text-xs font-semibold text-zinc-300 shadow-inner">
                       {player.playerId}
                     </span>
 
-                    <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5 font-semibold text-yellow-400">
-                      Rank #{player.ranking ?? "—"}
-                    </span>
+                    {/* ICONIC / DYNAMIC RANK BADGE */}
+                    {(() => {
+                      const rankNum = player.ranking;
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-                        Recent form
+                      if (rankNum === 1) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-yellow-200/50 bg-gradient-to-r from-yellow-500 via-amber-300 to-yellow-600 px-3.5 py-1.5 text-xs font-black text-black shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+                            <Crown className="h-4 w-4 text-black animate-bounce" />
+                            <span>#1 CHAMPION</span>
+                          </div>
+                        );
+                      }
+
+                      if (rankNum === 2) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-slate-100/50 bg-gradient-to-r from-slate-300 via-gray-100 to-slate-400 px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-[0_0_15px_rgba(203,213,225,0.4)]">
+                            <Trophy className="h-3.5 w-3.5 text-slate-950" />
+                            <span>#2 RUNNER UP</span>
+                          </div>
+                        );
+                      }
+
+                      if (rankNum === 3) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 px-3.5 py-1.5 text-xs font-bold text-amber-100 shadow-[0_0_15px_rgba(180,83,9,0.4)]">
+                            <Award className="h-3.5 w-3.5 text-amber-200" />
+                            <span>#3 BRONZE</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-gradient-to-r from-zinc-800 to-zinc-900 px-3.5 py-1.5 text-xs font-bold text-amber-400">
+                          <Flame className="h-3.5 w-3.5 text-amber-400" />
+                          <span>RANK #{rankNum ?? "—"}</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* RECENT FORM DISPLAY */}
+                    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-900/90 px-3.5 py-1.5 shadow-inner">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                        Form:
                       </span>
 
                       <div className="flex items-center gap-1.5">
@@ -999,12 +1039,12 @@ export default function PlayerProfilePage() {
                               player.playerId
                             );
 
-                            const resultClass =
+                            const badgeStyle =
                               result === "W"
-                                ? "border-green-400/20 bg-green-400/10 text-green-400"
+                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
                                 : result === "D"
-                                  ? "border-yellow-400/20 bg-yellow-400/10 text-yellow-400"
-                                  : "border-red-400/20 bg-red-400/10 text-red-400";
+                                ? "border-amber-500/30 bg-amber-500/20 text-amber-400"
+                                : "border-rose-500/30 bg-rose-500/20 text-rose-400";
 
                             return (
                               <span
@@ -1013,10 +1053,10 @@ export default function PlayerProfilePage() {
                                   result === "W"
                                     ? "Win"
                                     : result === "D"
-                                      ? "Draw"
-                                      : "Loss"
+                                    ? "Draw"
+                                    : "Loss"
                                 }
-                                className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-bold ${resultClass}`}
+                                className={`flex h-5 w-5 items-center justify-center rounded border text-[10px] font-black ${badgeStyle}`}
                               >
                                 {result}
                               </span>
@@ -1024,7 +1064,7 @@ export default function PlayerProfilePage() {
                           })}
 
                         {recentMatches.length === 0 && (
-                          <span className="text-zinc-600">—</span>
+                          <span className="text-xs text-zinc-600">—</span>
                         )}
                       </div>
                     </div>

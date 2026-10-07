@@ -13,7 +13,14 @@ import {
 } from "next/navigation";
 
 import Navbar from "../../../components/Navbar";
+import * as pdfjsLib from "pdfjs-dist";
 
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.mjs",
+    import.meta.url
+  ).toString();
+}
 import {
   ArrowLeft,
   CalendarDays,
@@ -528,7 +535,7 @@ export default function MatchesPage() {
   // DOWNLOAD ROUND FIXTURE
   // =====================================================
 
-    const downloadRoundFixture = async (
+  const downloadRoundFixture = async (
   round: number,
   roundMatches: Match[],
 ) => {
@@ -539,567 +546,1275 @@ export default function MatchesPage() {
     return;
   }
 
-  // ===================================================
-  // PDF
-  // ===================================================
+  try {
+    // ===================================================
+    // PDF
+    // ===================================================
 
-  const doc = new jsPDF({
-    orientation: "landscape",
-    unit: "mm",
-    format: [260, 205],
-  });
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: [260, 205],
+    });
 
-  const pageWidth =
-    doc.internal.pageSize.getWidth();
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
 
-  const pageHeight =
-    doc.internal.pageSize.getHeight();
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
 
-  // ===================================================
-  // CLEAN / CLASSIC DESIGN
-  // ===================================================
+    // ===================================================
+    // CLEAN / CLASSIC DESIGN
+    // ===================================================
 
-  const black: [number, number, number] = [18, 18, 18];
-  const darkGray: [number, number, number] = [55, 55, 55];
-  const gray: [number, number, number] = [115, 115, 115];
-  const lightGray: [number, number, number] = [238, 238, 238];
-  const softGray: [number, number, number] = [248, 248, 248];
-  const accent: [number, number, number] = [205, 25, 75];
-  const white: [number, number, number] = [255, 255, 255];
+    const black: [number, number, number] = [
+      18,
+      18,
+      18,
+    ];
 
-  // Clean white page
-  doc.setFillColor(...white);
-  doc.rect(0, 0, pageWidth, pageHeight, "F");
+    const darkGray: [number, number, number] = [
+      55,
+      55,
+      55,
+    ];
 
-  // ===================================================
-  // TOP ACCENT
-  // ===================================================
+    const gray: [number, number, number] = [
+      115,
+      115,
+      115,
+    ];
 
-  doc.setFillColor(...accent);
-  doc.rect(0, 0, pageWidth, 4, "F");
+    const lightGray: [number, number, number] = [
+      238,
+      238,
+      238,
+    ];
 
-  // ===================================================
-  // HEADER
-  // ===================================================
+    const softGray: [number, number, number] = [
+      248,
+      248,
+      248,
+    ];
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(22);
-  doc.setTextColor(...black);
+    const accent: [number, number, number] = [
+      205,
+      25,
+      75,
+    ];
 
-  doc.text(
-    "THRILL SEEKERS",
-    10,
-    18,
-  );
+    const white: [number, number, number] = [
+      255,
+      255,
+      255,
+    ];
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...gray);
+    // Classic green for winner
+    const winnerGreen: [number, number, number] = [
+      34,
+      120,
+      70,
+    ];
 
-  doc.text(
-    "EFOOTBALL CLUB",
-    10,
-    24,
-  );
+    // Soft classic green background
+    const winnerGreenSoft: [number, number, number] = [
+      235,
+      246,
+      239,
+    ];
 
-  // Right-side document label
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...accent);
-
-  doc.text(
-    "MATCH FIXTURE",
-    pageWidth - 10,
-    17,
-    { align: "right" },
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...gray);
-
-  doc.text(
-    `ROUND ${round}`,
-    pageWidth - 10,
-    23,
-    { align: "right" },
-  );
-
-  // Thin divider
-  doc.setDrawColor(...lightGray);
-  doc.setLineWidth(0.5);
-  doc.line(10, 30, pageWidth - 10, 30);
-
-  // ===================================================
-  // DIVISION / SEASON TITLE
-  // ===================================================
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(15);
-  doc.setTextColor(...black);
-
-  doc.text(
-    division.name ||
-      `Division ${division.divisionNumber}`,
-    10,
-    41,
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...gray);
-
-  doc.text(
-    `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
-    10,
-    47,
-  );
-
-  // Accent underline
-  doc.setFillColor(...accent);
-  doc.rect(10, 51, 34, 1.5, "F");
-
-  // ===================================================
-  // ROUND SUMMARY
-  // ===================================================
-
-  doc.setFillColor(...softGray);
-  doc.roundedRect(
-    10,
-    56,
-    pageWidth - 20,
-    18,
-    2.5,
-    2.5,
-    "F",
-  );
-
-  // Left vertical accent
-  doc.setFillColor(...accent);
-  doc.roundedRect(
-    10,
-    56,
-    2,
-    18,
-    1,
-    1,
-    "F",
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...black);
-
-  doc.text(
-    `ROUND ${round}`,
-    18,
-    65,
-  );
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(...gray);
-
-  doc.text(
-    `Deadline: ${formatDeadline(roundMatches[0].deadline)}`,
-    58,
-    66,
-  );
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(...darkGray);
-
-  doc.text(
-    `TOTAL MATCHES  ${roundMatches.length}`,
-    pageWidth - 18,
-    66,
-    { align: "right" },
-  );
-
-  // ===================================================
-  // WATERMARK LOGO
-  // ===================================================
-
-  const fixtureLogo = await loadFixtureLogo();
-
-  // ===================================================
-  // MATCH DATA
-  // ===================================================
-
-  const tableRows =
-    roundMatches.map(
-      (match, index) => {
-        const homePlayer =
-          getPlayer(
-            match.homePlayerId,
-          );
-
-        const awayPlayer =
-          getPlayer(
-            match.awayPlayerId,
-          );
-
-        const formattedStatus =
-          match.status
-            ? match.status
-                .toLowerCase()
-                .replace(
-                  /^./,
-                  (letter) =>
-                    letter.toUpperCase(),
-                )
-            : "";
-
-        return [
-          String(index + 1),
-          match.matchId,
-          homePlayer?.name ||
-            match.homePlayerId,
-          "VS",
-          awayPlayer?.name ||
-            match.awayPlayerId,
-          formatDeadline(
-            match.deadline,
-          ),
-          formattedStatus,
-        ];
-      },
+    // Clean white page
+    doc.setFillColor(
+      ...white,
     );
 
-  // ===================================================
-  // TABLE
-  // ===================================================
-
-  autoTable(doc, {
-    startY: 74,
-
-    margin: {
-      left: 10,
-      right: 10,
-    },
-
-    head: [
-      [
-        "#",
-        "MATCH ID",
-        "HOME",
-        "",
-        "AWAY",
-        "DEADLINE",
-        "STATUS",
-      ],
-    ],
-
-    body: tableRows,
-
-    theme: "plain",
-
-    styles: {
-      font: "helvetica",
-      fontSize: 8.8,
-      cellPadding: 2.5,
-      valign: "middle",
-      lineWidth: 0.2,
-      lineColor: lightGray,
-      textColor: black,
-      fillColor: white,
-      overflow: "ellipsize",
-      minCellHeight: 8.0,
-    },
-
-    headStyles: {
-      fontStyle: "bold",
-      fontSize: 8,
-      textColor: white,
-      fillColor: false,
-      halign: "center",
-      valign: "middle",
-      cellPadding: 3,
-    },
-
-    columnStyles: {
-      0: {
-        cellWidth: 10,
-        halign: "center",
-        fontStyle: "bold",
-      },
-
-      1: {
-        cellWidth: 28,
-        fontStyle: "bold",
-      },
-
-      2: {
-        cellWidth: 48,
-        fontSize: 8.0,
-        fontStyle: "bold",
-        overflow: "ellipsize",
-      },
-
-      3: {
-        cellWidth: 12,
-        halign: "center",
-        fontStyle: "bold",
-      },
-
-      4: {
-        cellWidth: 48,
-        fontSize: 8.0,
-        fontStyle: "bold",
-        overflow: "ellipsize",
-      },
-
-      5: {
-        cellWidth: 56,
-        halign: "center",
-      },
-
-      6: {
-        cellWidth: 38,
-        halign: "center",
-        fontStyle: "bold",
-        overflow: "ellipsize",
-      },
-    },
-
-    // =================================================
-    // SIMPLE CLASSIC ROW DESIGN
-    // =================================================
-
-    willDrawCell: (data) => {
-      // Header
-      if (data.section === "head") {
-        doc.setFillColor(...black);
-
-        doc.roundedRect(
-          data.cell.x + 0.5,
-          data.cell.y + 0.8,
-          data.cell.width - 1,
-          data.cell.height - 1.6,
-          1.5,
-          1.5,
-          "F",
-        );
-
-        return;
-      }
-
-      // Row background
-      if (
-        data.section === "body" &&
-        data.column.index === 0
-      ) {
-        const tableLeft = 10;
-        const tableWidth = pageWidth - 20;
-
-        doc.setFillColor(
-          data.row.index % 2 === 0
-            ? 248
-            : 255,
-          data.row.index % 2 === 0
-            ? 248
-            : 255,
-          data.row.index % 2 === 0
-            ? 248
-            : 255,
-        );
-
-        doc.roundedRect(
-          tableLeft,
-          data.cell.y + 0.5,
-          tableWidth,
-          data.row.height - 1,
-          2,
-          2,
-          "F",
-        );
-
-        // Bottom separator
-        doc.setDrawColor(...lightGray);
-        doc.setLineWidth(0.25);
-        doc.line(
-          tableLeft + 2,
-          data.cell.y + data.row.height,
-          tableLeft + tableWidth - 2,
-          data.cell.y + data.row.height,
-        );
-
-        // Draw the club logo watermark after the row background so it
-        // remains visible inside the table, but before the cell text.
-        if (fixtureLogo) {
-          doc.saveGraphicsState();
-
-          doc.setGState(
-            doc.GState({
-              opacity: 0.008,
-            }),
-          );
-
-          doc.addImage(
-            fixtureLogo,
-            "PNG",
-            pageWidth / 2 - 28,
-            84,
-            56,
-            56,
-          );
-
-          doc.restoreGraphicsState();
-        }
-
-      }
-
-      // Match number badge
-      if (
-        data.section === "body" &&
-        data.column.index === 0
-      ) {
-        doc.setFillColor(...black);
-
-        doc.roundedRect(
-          data.cell.x + 1.5,
-          data.cell.y + 2,
-          data.cell.width - 3,
-          data.cell.height - 4,
-          1.5,
-          1.5,
-          "F",
-        );
-
-        data.cell.styles.textColor = white;
-      }
-
-      // VS badge
-      if (
-        data.section === "body" &&
-        data.column.index === 3
-      ) {
-        doc.setFillColor(...accent);
-
-        doc.roundedRect(
-          data.cell.x + 3,
-          data.cell.y + 2,
-          data.cell.width - 6,
-          data.cell.height - 4,
-          2,
-          2,
-          "F",
-        );
-
-        data.cell.styles.textColor = white;
-      }
-
-    },
-
-    // =================================================
-    // TEXT / STATUS COLORS
-    // =================================================
-
-    didParseCell: (data) => {
-      if (
-        data.section === "body" &&
-        data.column.index === 1
-      ) {
-        data.cell.styles.textColor = accent;
-      }
-
-      if (
-        data.section === "body" &&
-        data.column.index === 6
-      ) {
-        data.cell.styles.textColor = black;
-        data.cell.styles.fontStyle = "normal";
-        data.cell.styles.halign = "center";
-      }
-    },
-
-  });
-
-  // ===================================================
-  // FOOTER
-  // ===================================================
-
-  const pageCount = doc.getNumberOfPages();
-
-  for (
-    let page = 1;
-    page <= pageCount;
-    page++
-  ) {
-    doc.setPage(page);
-
-    doc.setDrawColor(...lightGray);
-    doc.setLineWidth(0.35);
-
-    doc.line(
-      10,
-      pageHeight - 20,
-      pageWidth - 10,
-      pageHeight - 20,
+    doc.rect(
+      0,
+      0,
+      pageWidth,
+      pageHeight,
+      "F",
     );
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7);
-    doc.setTextColor(...black);
+    // ===================================================
+    // TOP ACCENT
+    // ===================================================
+
+    doc.setFillColor(
+      ...accent,
+    );
+
+    doc.rect(
+      0,
+      0,
+      pageWidth,
+      4,
+      "F",
+    );
+
+    // ===================================================
+    // HEADER
+    // ===================================================
+
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(22);
+
+    doc.setTextColor(
+      ...black,
+    );
 
     doc.text(
       "THRILL SEEKERS",
       10,
-      pageHeight - 14,
+      18,
     );
 
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(...gray);
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
 
-    doc.text(
-      `Efootball Club  •  Round ${round}`,
-      pageWidth / 2,
-      pageHeight - 14,
-      { align: "center" },
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...gray,
     );
 
     doc.text(
-      `Page ${page} of ${pageCount}`,
+      "EFOOTBALL CLUB",
+      10,
+      24,
+    );
+
+    // Right-side document label
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(8);
+
+    doc.setTextColor(
+      ...accent,
+    );
+
+    doc.text(
+      "MATCH FIXTURE",
       pageWidth - 10,
-      pageHeight - 14,
-      { align: "right" },
+      17,
+      {
+        align: "right",
+      },
     );
 
-    doc.setFillColor(...accent);
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.setFontSize(7);
+
+    doc.setTextColor(
+      ...gray,
+    );
+
+    doc.text(
+      `ROUND ${round}`,
+      pageWidth - 10,
+      23,
+      {
+        align: "right",
+      },
+    );
+
+    // Thin divider
+    doc.setDrawColor(
+      ...lightGray,
+    );
+
+    doc.setLineWidth(0.5);
+
+    doc.line(
+      10,
+      30,
+      pageWidth - 10,
+      30,
+    );
+
+    // ===================================================
+    // DIVISION / SEASON TITLE
+    // ===================================================
+
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(15);
+
+    doc.setTextColor(
+      ...black,
+    );
+
+    doc.text(
+      division.name ||
+        `Division ${division.divisionNumber}`,
+      10,
+      41,
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.setFontSize(8);
+
+    doc.setTextColor(
+      ...gray,
+    );
+
+    doc.text(
+      `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
+      10,
+      47,
+    );
+
+    // Accent underline
+    doc.setFillColor(
+      ...accent,
+    );
 
     doc.rect(
       10,
-      pageHeight - 8,
+      51,
+      34,
+      1.5,
+      "F",
+    );
+
+    // ===================================================
+    // ROUND SUMMARY
+    // ===================================================
+
+    const completedCount =
+      roundMatches.filter(
+        (match) =>
+          match.status ===
+          "COMPLETED",
+      ).length;
+
+    doc.setFillColor(
+      ...softGray,
+    );
+
+    doc.roundedRect(
+      10,
+      56,
       pageWidth - 20,
+      21,
+      2.5,
+      2.5,
+      "F",
+    );
+
+    // Left vertical accent
+    doc.setFillColor(
+      ...accent,
+    );
+
+    doc.roundedRect(
+      10,
+      56,
+      2,
+      21,
+      1,
       1,
       "F",
     );
-  }
 
-  // ===================================================
-  // FILE NAME
-  // ===================================================
+    // Round
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
 
-  const safeDivisionName =
-    (
-      division.name ||
-      `Division-${division.divisionNumber}`
-    )
-      .replace(
-        /[^a-z0-9]+/gi,
-        "-",
-      )
-      .replace(
-        /^-+|-+$/g,
-        "",
+    doc.setFontSize(11);
+
+    doc.setTextColor(
+      ...black,
+    );
+
+    doc.text(
+      `ROUND ${round}`,
+      18,
+      66,
+    );
+
+    // Deadline
+    doc.setFont(
+      "helvetica",
+      "normal",
+    );
+
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...gray,
+    );
+
+    doc.text(
+      `Deadline: ${formatDeadline(
+        roundMatches[0].deadline,
+      )}`,
+      58,
+      66,
+    );
+
+    // Total matches
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.setFontSize(7.5);
+
+    doc.setTextColor(
+      ...darkGray,
+    );
+
+    doc.text(
+      `TOTAL MATCHES  ${roundMatches.length}`,
+      pageWidth - 18,
+      63,
+      {
+        align: "right",
+      },
+    );
+
+    // Completed matches
+    const summaryColor =
+      completedCount ===
+      roundMatches.length
+        ? winnerGreen
+        : darkGray;
+
+    doc.setTextColor(
+      ...summaryColor,
+    );
+
+    doc.text(
+      `COMPLETED  ${completedCount}`,
+      pageWidth - 18,
+      70,
+      {
+        align: "right",
+      },
+    );
+
+    // ===================================================
+    // WATERMARK LOGO
+    // ===================================================
+
+    const fixtureLogo =
+      await loadFixtureLogo();
+
+    // ===================================================
+    // MATCH DATA
+    // ===================================================
+
+    const tableRows =
+      roundMatches.map(
+        (match, index) => {
+          const homePlayer =
+            getPlayer(
+              match.homePlayerId,
+            );
+
+          const awayPlayer =
+            getPlayer(
+              match.awayPlayerId,
+            );
+
+          const homeName =
+            homePlayer?.name ||
+            match.homePlayerId;
+
+          const awayName =
+            awayPlayer?.name ||
+            match.awayPlayerId;
+
+          const isCompleted =
+            match.status ===
+            "COMPLETED";
+
+          const hasScore =
+            isCompleted &&
+            match.homeScore !== null &&
+            match.awayScore !== null;
+
+          const homeWon =
+            hasScore &&
+            match.homeScore! >
+              match.awayScore!;
+
+          const awayWon =
+            hasScore &&
+            match.awayScore! >
+              match.homeScore!;
+
+          const formattedStatus =
+            match.status
+              ? match.status
+                  .toLowerCase()
+                  .replace(
+                    /^./,
+                    (letter) =>
+                      letter.toUpperCase(),
+                  )
+              : "";
+
+          return {
+            row: [
+              String(index + 1),
+
+              match.matchId,
+
+              homeName,
+
+              hasScore
+                ? String(
+                    match.homeScore,
+                  )
+                : "",
+
+              hasScore
+                ? String(
+                    match.awayScore,
+                  )
+                : "",
+
+              awayName,
+
+              formatDeadline(
+                match.deadline,
+              ),
+
+              formattedStatus,
+            ],
+
+            homeWon,
+
+            awayWon,
+
+            isCompleted,
+          };
+        },
       );
 
-  doc.save(
-    `${safeDivisionName}-Round-${round}-Fixture.pdf`,
-  );
-};
+    // ===================================================
+    // TABLE
+    // ===================================================
 
+    autoTable(doc, {
+      startY: 79,
+
+      margin: {
+        left: 10,
+        right: 10,
+      },
+
+      head: [
+        [
+          "#",
+          "MATCH ID",
+          "HOME",
+          "H",
+          "A",
+          "AWAY",
+          "DEADLINE",
+          "STATUS",
+        ],
+      ],
+
+      body: tableRows.map(
+        (item) => item.row,
+      ),
+
+      theme: "plain",
+
+      styles: {
+        font: "helvetica",
+        fontSize: 8.5,
+        cellPadding: 2.5,
+        valign: "middle",
+        lineWidth: 0.2,
+        lineColor:
+          lightGray,
+        textColor:
+          black,
+        fillColor:
+          false,
+        overflow:
+          "ellipsize",
+        minCellHeight:
+          8.5,
+      },
+
+      headStyles: {
+        fontStyle:
+          "bold",
+        fontSize: 8,
+        textColor:
+          white,
+        fillColor:
+          false,
+        halign:
+          "center",
+        valign:
+          "middle",
+        cellPadding: 3,
+      },
+
+      columnStyles: {
+        // #
+        0: {
+          cellWidth: 10,
+          halign:
+            "center",
+          fontStyle:
+            "bold",
+        },
+
+        // MATCH ID
+        1: {
+          cellWidth: 28,
+          fontStyle:
+            "bold",
+        },
+
+        // HOME
+        2: {
+          cellWidth: 48,
+          fontSize: 8.0,
+          fontStyle:
+            "bold",
+          halign:
+            "right",
+          overflow:
+            "ellipsize",
+        },
+
+        // HOME SCORE
+        3: {
+          cellWidth: 9,
+          halign:
+            "right",
+          fontStyle:
+            "bold",
+        },
+
+        // AWAY SCORE
+        4: {
+          cellWidth: 9,
+          halign:
+            "left",
+          fontStyle:
+            "bold",
+        },
+
+        // AWAY
+        5: {
+          cellWidth: 48,
+          fontSize: 8.0,
+          fontStyle:
+            "bold",
+          halign:
+            "left",
+          overflow:
+            "ellipsize",
+        },
+
+        // DEADLINE
+        6: {
+          cellWidth: 56,
+          halign:
+            "center",
+        },
+
+        // STATUS
+        7: {
+          cellWidth: 38,
+          halign:
+            "center",
+          fontStyle:
+            "bold",
+          overflow:
+            "ellipsize",
+        },
+      },
+
+      // Watermark centered specifically between HOME and AWAY columns
+      didDrawPage: () => {
+        if (fixtureLogo) {
+          doc.saveGraphicsState();
+          doc.setGState(
+            doc.GState({
+              opacity: 0.11,
+            }),
+          );
+
+          const logoSize = 65;
+          // Offset to center between HOME, H, A, AWAY columns (Columns 2 - 5)
+          const logoX = 72.5; 
+          const logoY = 95;
+
+          doc.addImage(
+            fixtureLogo,
+            "PNG",
+            logoX,
+            logoY,
+            logoSize,
+            logoSize,
+          );
+
+          doc.restoreGraphicsState();
+        }
+      },
+
+      // =================================================
+      // ROW DESIGN
+      // =================================================
+
+      willDrawCell:
+        (data) => {
+          // -------------------------------------------------
+          // HEADER
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+            "head"
+          ) {
+            doc.setFillColor(
+              ...black,
+            );
+
+            doc.roundedRect(
+              data.cell.x +
+                0.5,
+              data.cell.y +
+                0.8,
+              data.cell.width -
+                1,
+              data.cell.height -
+                1.6,
+              1.5,
+              1.5,
+              "F",
+            );
+
+            return;
+          }
+
+          const rowInfo =
+            tableRows[
+              data.row.index
+            ];
+
+          // -------------------------------------------------
+          // ROW BACKGROUND
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+              "body" &&
+            data.column.index ===
+              0
+          ) {
+            const tableLeft = 10;
+
+            const tableWidth =
+              pageWidth - 20;
+
+            doc.setFillColor(
+              data.row.index %
+                2 ===
+                0
+                ? 248
+                : 255,
+              data.row.index %
+                2 ===
+                0
+                ? 248
+                : 255,
+              data.row.index %
+                2 ===
+                0
+                ? 248
+                : 255,
+            );
+
+            doc.saveGraphicsState();
+            doc.setGState(
+              doc.GState({
+                opacity: 0.65,
+              }),
+            );
+
+            doc.roundedRect(
+              tableLeft,
+              data.cell.y +
+                0.5,
+              tableWidth,
+              data.row.height -
+                1,
+              2,
+              2,
+              "F",
+            );
+
+            doc.restoreGraphicsState();
+
+            // Bottom separator
+            doc.setDrawColor(
+              ...lightGray,
+            );
+
+            doc.setLineWidth(
+              0.25,
+            );
+
+            doc.line(
+              tableLeft + 2,
+              data.cell.y +
+                data.row.height,
+              tableLeft +
+                tableWidth -
+                2,
+              data.cell.y +
+                data.row.height,
+            );
+          }
+
+          // -------------------------------------------------
+          // MATCH NUMBER BADGE
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+              "body" &&
+            data.column.index ===
+              0
+          ) {
+            doc.setFillColor(
+              ...black,
+            );
+
+            doc.roundedRect(
+              data.cell.x +
+                1.5,
+              data.cell.y + 2,
+              data.cell.width -
+                3,
+              data.cell.height -
+                4,
+              1.5,
+              1.5,
+              "F",
+            );
+
+            data.cell.styles.textColor =
+              white;
+          }
+
+          // -------------------------------------------------
+          // HOME WINNER
+          // -------------------------------------------------
+
+          if (
+            rowInfo?.homeWon &&
+            data.section ===
+              "body" &&
+            (
+              data.column.index ===
+                2 ||
+              data.column.index ===
+                3
+            )
+          ) {
+            doc.setFillColor(
+              ...winnerGreenSoft,
+            );
+
+            doc.roundedRect(
+              data.cell.x + 1,
+              data.cell.y + 1,
+              data.cell.width -
+                2,
+              data.cell.height -
+                2,
+              1.5,
+              1.5,
+              "F",
+            );
+          }
+
+          // -------------------------------------------------
+          // AWAY WINNER
+          // -------------------------------------------------
+
+          if (
+            rowInfo?.awayWon &&
+            data.section ===
+              "body" &&
+            (
+              data.column.index ===
+                4 ||
+              data.column.index ===
+                5
+            )
+          ) {
+            doc.setFillColor(
+              ...winnerGreenSoft,
+            );
+
+            doc.roundedRect(
+              data.cell.x + 1,
+              data.cell.y + 1,
+              data.cell.width -
+                2,
+              data.cell.height -
+                2,
+              1.5,
+              1.5,
+              "F",
+            );
+          }
+        },
+
+      // =================================================
+      // TEXT / WINNER COLORS
+      // =================================================
+
+      didParseCell:
+        (data) => {
+          const rowInfo =
+            tableRows[
+              data.row.index
+            ];
+
+          // -------------------------------------------------
+          // MATCH ID
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+              "body" &&
+            data.column.index ===
+              1
+          ) {
+            data.cell.styles.textColor =
+              accent;
+          }
+
+          // -------------------------------------------------
+          // HOME WINNER
+          // -------------------------------------------------
+
+          if (
+            rowInfo?.homeWon &&
+            data.section ===
+              "body" &&
+            (
+              data.column.index ===
+                2 ||
+              data.column.index ===
+                3
+            )
+          ) {
+            data.cell.styles.textColor =
+              winnerGreen;
+
+            data.cell.styles.fontStyle =
+              "bold";
+          }
+
+          // -------------------------------------------------
+          // AWAY WINNER
+          // -------------------------------------------------
+
+          if (
+            rowInfo?.awayWon &&
+            data.section ===
+              "body" &&
+            (
+              data.column.index ===
+                4 ||
+              data.column.index ===
+                5
+            )
+          ) {
+            data.cell.styles.textColor =
+              winnerGreen;
+
+            data.cell.styles.fontStyle =
+              "bold";
+          }
+
+          // -------------------------------------------------
+          // SCORES
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+              "body" &&
+            (
+              data.column.index ===
+                3 ||
+              data.column.index ===
+                4
+            )
+          ) {
+            data.cell.styles.fontSize =
+              9.5;
+
+            data.cell.styles.fontStyle =
+              "bold";
+          }
+
+          // -------------------------------------------------
+          // STATUS
+          // -------------------------------------------------
+
+          if (
+            data.section ===
+              "body" &&
+            data.column.index ===
+              7
+          ) {
+            data.cell.styles.textColor =
+              black;
+
+            data.cell.styles.fontStyle =
+              "normal";
+
+            data.cell.styles.halign =
+              "center";
+          }
+        },
+    });
+
+    // ===================================================
+    // FOOTER
+    // ===================================================
+
+    const pageCount =
+      doc.getNumberOfPages();
+
+    for (
+      let page = 1;
+      page <= pageCount;
+      page++
+    ) {
+      doc.setPage(page);
+
+      doc.setDrawColor(
+        ...lightGray,
+      );
+
+      doc.setLineWidth(
+        0.35,
+      );
+
+      doc.line(
+        10,
+        pageHeight - 20,
+        pageWidth - 10,
+        pageHeight - 20,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(7);
+
+      doc.setTextColor(
+        ...black,
+      );
+
+      doc.text(
+        "THRILL SEEKERS",
+        10,
+        pageHeight - 14,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
+
+      doc.setTextColor(
+        ...gray,
+      );
+
+      doc.text(
+        `Efootball Club  •  Round ${round}`,
+        pageWidth / 2,
+        pageHeight - 14,
+        {
+          align: "center",
+        },
+      );
+
+      doc.text(
+        `Completed ${completedCount}/${roundMatches.length}`,
+        pageWidth - 10,
+        pageHeight - 14,
+        {
+          align: "right",
+        },
+      );
+
+      doc.setFillColor(
+        ...accent,
+      );
+
+      doc.rect(
+        10,
+        pageHeight - 8,
+        pageWidth - 20,
+        1,
+        "F",
+      );
+    }
+
+    // ===================================================
+    // FILE NAME
+    // ===================================================
+
+    const safeDivisionName =
+      (
+        division.name ||
+        `Division-${division.divisionNumber}`
+      )
+        .replace(
+          /[^a-z0-9]+/gi,
+          "-",
+        )
+        .replace(
+          /^-+|-+$/g,
+          "",
+        );
+
+    // ===================================================
+    // CONVERT PDF → PNG
+    // ===================================================
+
+    const pdfData =
+      doc.output(
+        "arraybuffer",
+      );
+
+    const pdf =
+      await pdfjsLib
+        .getDocument({
+          data: pdfData,
+        })
+        .promise;
+
+    // ===================================================
+    // RENDER ALL PDF PAGES
+    // ===================================================
+
+    const renderScale = 3;
+
+    const renderedPages:
+      HTMLCanvasElement[] =
+      [];
+
+    let totalHeight = 0;
+
+    let maxWidth = 0;
+
+    for (
+      let pageNumber = 1;
+      pageNumber <=
+      pdf.numPages;
+      pageNumber++
+    ) {
+      const page =
+        await pdf.getPage(
+          pageNumber,
+        );
+
+      const viewport =
+        page.getViewport({
+          scale: renderScale,
+        });
+
+      const canvas =
+        document.createElement(
+          "canvas",
+        );
+
+      const context =
+        canvas.getContext(
+          "2d",
+        );
+
+      if (!context) {
+        throw new Error(
+          "Unable to create canvas.",
+        );
+      }
+
+      canvas.width =
+        Math.ceil(
+          viewport.width,
+        );
+
+      canvas.height =
+        Math.ceil(
+          viewport.height,
+        );
+
+      await page.render({
+        canvas,
+        canvasContext:
+          context,
+        viewport,
+      }).promise;
+
+      renderedPages.push(
+        canvas,
+      );
+
+      totalHeight +=
+        canvas.height;
+
+      maxWidth = Math.max(
+        maxWidth,
+        canvas.width,
+      );
+    }
+
+    // ===================================================
+    // COMBINE PAGES INTO ONE IMAGE
+    // ===================================================
+
+    const finalCanvas =
+      document.createElement(
+        "canvas",
+      );
+
+    finalCanvas.width =
+      maxWidth;
+
+    finalCanvas.height =
+      totalHeight;
+
+    const finalContext =
+      finalCanvas.getContext(
+        "2d",
+      );
+
+    if (!finalContext) {
+      throw new Error(
+        "Unable to create final canvas.",
+      );
+    }
+
+    finalContext.fillStyle =
+      "white";
+
+    finalContext.fillRect(
+      0,
+      0,
+      finalCanvas.width,
+      finalCanvas.height,
+    );
+
+    let currentY = 0;
+
+    for (
+      const pageCanvas of renderedPages
+    ) {
+      finalContext.drawImage(
+        pageCanvas,
+        0,
+        currentY,
+      );
+
+      currentY +=
+        pageCanvas.height;
+    }
+
+    // ===================================================
+    // DOWNLOAD PNG
+    // ===================================================
+
+    const imageBlob =
+      await new Promise<Blob | null>(
+        (resolve) => {
+          finalCanvas.toBlob(
+            (blob) =>
+              resolve(blob),
+            "image/png",
+            1,
+          );
+        },
+      );
+
+    if (!imageBlob) {
+      throw new Error(
+        "Failed to create fixture image.",
+      );
+    }
+
+    const imageUrl =
+      URL.createObjectURL(
+        imageBlob,
+      );
+
+    const link =
+      document.createElement(
+        "a",
+      );
+
+    link.href =
+      imageUrl;
+
+    link.download =
+      `${safeDivisionName}-Round-${round}-Fixture.png`;
+
+    document.body.appendChild(
+      link,
+    );
+
+    link.click();
+
+    document.body.removeChild(
+      link,
+    );
+
+    URL.revokeObjectURL(
+      imageUrl,
+    );
+  } catch (error) {
+    console.error(
+      "Fixture image generation failed:",
+      error,
+    );
+  }
+};    
+  
 
 //end pdf
   // =====================================================

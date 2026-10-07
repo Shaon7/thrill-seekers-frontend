@@ -20,6 +20,9 @@ import {
   Medal,
   Star,
   Users,
+  Crown,
+  Award,
+  Flame,
 } from "lucide-react";
 
 const API_URL = "https://thrill-seekers-backend-production.up.railway.app";
@@ -88,6 +91,38 @@ interface PlayerStats {
   losses: number;
   goals: number;
   winRate: number;
+}
+
+/* ================================================== */
+/* MATCH RESULT */
+/* ================================================== */
+
+function getMatchResult(
+  match: Match,
+  playerId: string
+): "W" | "D" | "L" {
+  const isHome =
+    match.homePlayerId === playerId;
+
+  const myScore =
+    isHome
+      ? match.homeScore ?? 0
+      : match.awayScore ?? 0;
+
+  const opponentScore =
+    isHome
+      ? match.awayScore ?? 0
+      : match.homeScore ?? 0;
+
+  if (myScore > opponentScore) {
+    return "W";
+  }
+
+  if (myScore < opponentScore) {
+    return "L";
+  }
+
+  return "D";
 }
 
 /* ================================================== */
@@ -645,47 +680,96 @@ export default function PublicPlayerProfilePage() {
                     {player.name}
                   </h1>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
 
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-zinc-300">
+                    {/* PLAYER TAG BADGE */}
+                    <span className="rounded-xl border border-white/10 bg-zinc-900/90 px-3.5 py-1.5 font-mono text-xs font-semibold text-zinc-300 shadow-inner">
                       {player.playerId}
                     </span>
 
-                    <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-3 py-1.5 font-semibold text-yellow-400">
-                      Rank #{player.ranking ?? "—"}
-                    </span>
+                    {/* ICONIC / DYNAMIC RANK BADGE */}
+                    {(() => {
+                      const rankNum = player.ranking;
 
-                    <span className="flex items-center gap-2 text-zinc-400">
-                      <span className="font-semibold text-zinc-500">Recent Form</span>
-                      {recentMatches.length > 0 ? (
-                        recentMatches
-                          .slice()
+                      if (rankNum === 1) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-yellow-200/50 bg-gradient-to-r from-yellow-500 via-amber-300 to-yellow-600 px-3.5 py-1.5 text-xs font-black text-black shadow-[0_0_20px_rgba(234,179,8,0.5)]">
+                            <Crown className="h-4 w-4 text-black animate-bounce" />
+                            <span>Rank #1</span>
+                          </div>
+                        );
+                      }
+
+                      if (rankNum === 2) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-slate-100/50 bg-gradient-to-r from-slate-300 via-gray-100 to-slate-400 px-3.5 py-1.5 text-xs font-black text-slate-950 shadow-[0_0_15px_rgba(203,213,225,0.4)]">
+                            <Trophy className="h-3.5 w-3.5 text-slate-950" />
+                            <span>Rank #2</span>
+                          </div>
+                        );
+                      }
+
+                      if (rankNum === 3) {
+                        return (
+                          <div className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-gradient-to-r from-amber-700 via-amber-600 to-amber-800 px-3.5 py-1.5 text-xs font-bold text-amber-100 shadow-[0_0_15px_rgba(180,83,9,0.4)]">
+                            <Award className="h-3.5 w-3.5 text-amber-200" />
+                            <span>Rank #3</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-gradient-to-r from-zinc-800 to-zinc-900 px-3.5 py-1.5 text-xs font-bold text-amber-400">
+                          <Flame className="h-3.5 w-3.5 text-amber-400" />
+                          <span>RANK #{rankNum ?? "—"}</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* RECENT FORM DISPLAY */}
+                    <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-900/90 px-3.5 py-1.5 shadow-inner">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                        Form:
+                      </span>
+
+                      <div className="flex items-center gap-1.5">
+                        {[...recentMatches]
                           .reverse()
                           .map((match) => {
-                            const isHome = match.homePlayerId === player.playerId;
-                            const myScore = isHome ? match.homeScore ?? 0 : match.awayScore ?? 0;
-                            const opponentScore = isHome ? match.awayScore ?? 0 : match.homeScore ?? 0;
-                            const result = myScore > opponentScore ? "W" : myScore < opponentScore ? "L" : "D";
+                            const result = getMatchResult(
+                              match,
+                              player.playerId
+                            );
+
+                            const badgeStyle =
+                              result === "W"
+                                ? "border-emerald-500/30 bg-emerald-500/20 text-emerald-400"
+                                : result === "D"
+                                ? "border-amber-500/30 bg-amber-500/20 text-amber-400"
+                                : "border-rose-500/30 bg-rose-500/20 text-rose-400";
 
                             return (
                               <span
                                 key={match.id}
-                                className={`font-extrabold ${
+                                title={
                                   result === "W"
-                                    ? "text-green-400"
+                                    ? "Win"
                                     : result === "D"
-                                      ? "text-yellow-400"
-                                      : "text-red-400"
-                                }`}
+                                    ? "Draw"
+                                    : "Loss"
+                                }
+                                className={`flex h-5 w-5 items-center justify-center rounded border text-[10px] font-black ${badgeStyle}`}
                               >
                                 {result}
                               </span>
                             );
-                          })
-                      ) : (
-                        <span className="text-zinc-600">—</span>
-                      )}
-                    </span>
+                          })}
+
+                        {recentMatches.length === 0 && (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
+                      </div>
+                    </div>
 
                   </div>
 

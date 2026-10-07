@@ -12,6 +12,8 @@ import {
   AlertCircle,
   ArrowRight,
   Search,
+  Crown,
+  Award,
 } from "lucide-react";
 
 const API_URL =
@@ -56,6 +58,71 @@ export default function PlayersPage() {
       // Lower ranking number = higher position
       return a.ranking - b.ranking;
     });
+
+  // Helper function to render Gold, Silver, and Bronze badges for rankings
+  const renderRankBadge = (ranking: number | null | undefined) => {
+    if (ranking === 1) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-yellow-200/50 bg-gradient-to-r from-yellow-500 via-amber-300 to-yellow-600 px-3.5 py-1 text-xs font-black text-black shadow-[0_0_15px_rgba(234,179,8,0.4)]">
+          <Crown className="h-3.5 w-3.5 text-black" />
+          #1
+        </span>
+      );
+    }
+
+    if (ranking === 2) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-100/50 bg-gradient-to-r from-slate-300 via-gray-100 to-slate-400 px-3.5 py-1 text-xs font-black text-slate-950 shadow-[0_0_12px_rgba(203,213,225,0.3)]">
+          <Trophy className="h-3.5 w-3.5 text-slate-950" />
+          #2
+        </span>
+      );
+    }
+
+    if (ranking === 3) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-600/50 bg-gradient-to-r from-amber-700 via-orange-600 to-amber-800 px-3.5 py-1 text-xs font-bold text-amber-100 shadow-[0_0_12px_rgba(180,83,9,0.3)]">
+          <Award className="h-3.5 w-3.5 text-amber-200" />
+          #3
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-block pl-4 font-bold text-yellow-400">
+        {ranking ?? "—"}
+      </span>
+    );
+  };
+
+  // Helper function to render Gold, Silver, Bronze styled player names
+  const renderPlayerName = (name: string, ranking: number | null | undefined) => {
+    if (ranking === 1) {
+      return (
+        <span className="font-black tracking-wide text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]">
+          {name}
+        </span>
+      );
+    }
+
+    if (ranking === 2) {
+      return (
+        <span className="font-bold tracking-wide text-slate-300 drop-shadow-[0_0_8px_rgba(203,213,225,0.25)]">
+          {name}
+        </span>
+      );
+    }
+
+    if (ranking === 3) {
+      return (
+        <span className="font-bold tracking-wide text-amber-600 drop-shadow-[0_0_8px_rgba(217,119,6,0.3)]">
+          {name}
+        </span>
+      );
+    }
+
+    return <span className="font-semibold text-white">{name}</span>;
+  };
 
   // =====================================================
   // LOAD ALL PLAYERS
@@ -272,12 +339,9 @@ export default function PlayersPage() {
             <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
 
               <div>
-                <p className="text-xs font-semibold tracking-[0.2em] text-yellow-400">
-                  CLUB MEMBERS
-                </p>
 
-                <h2 className="mt-1 text-2xl font-bold">
-                  All Players
+                <h2 className="mt-1 text-2xl font-bold text-center">
+                  Players Ranking
                 </h2>
               </div>
 
@@ -339,15 +403,11 @@ export default function PlayersPage() {
                         >
 
                           <td className="px-5 py-4">
-                            <span className="font-semibold text-white">
-                              {player.name}
-                            </span>
+                            {renderPlayerName(player.name, player.ranking)}
                           </td>
 
                           <td className="px-5 py-4">
-                            <span className="font-bold text-yellow-400">
-                              {player.ranking ?? "—"}
-                            </span>
+                            {renderRankBadge(player.ranking)}
                           </td>
 
                           <td className="px-5 py-4 text-right">
@@ -405,7 +465,7 @@ export default function PlayersPage() {
 
                       <div
                         key={player.id}
-                        className="grid grid-cols-[60px_1fr_auto] items-center gap-3 p-4"
+                        className="grid grid-cols-[85px_1fr_auto] items-center gap-3 p-4"
                       >
 
                         {/* Ranking */}
@@ -416,9 +476,9 @@ export default function PlayersPage() {
                             Rank
                           </p>
 
-                          <p className="mt-1 text-lg font-black text-yellow-400">
-                            {player.ranking ?? "—"}
-                          </p>
+                          <div className="mt-1 flex justify-center">
+                            {renderRankBadge(player.ranking)}
+                          </div>
 
                         </div>
 
@@ -430,8 +490,8 @@ export default function PlayersPage() {
                             Player
                           </p>
 
-                          <p className="mt-1 truncate text-sm font-semibold text-white">
-                            {player.name}
+                          <p className="mt-1 truncate text-sm">
+                            {renderPlayerName(player.name, player.ranking)}
                           </p>
 
                         </div>
