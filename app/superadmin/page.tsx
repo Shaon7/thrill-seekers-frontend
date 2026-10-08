@@ -17,6 +17,7 @@ import {
   LogOut,
   Shield,
   DollarSign,
+  Banknote
 } from "lucide-react";
 
 interface SuperAdmin {
@@ -223,10 +224,10 @@ export default function Home() {
             />
 
             <ManagementCard
-              icon={<Trophy size={24} />}
-              title="Competitions"
+              icon={<Banknote size={24} />}
+              title="payment-status"
               description="Create and manage competitions and tournaments."
-              href="/competitions"
+              href="/payment-status"
             />
 
             <ManagementCard

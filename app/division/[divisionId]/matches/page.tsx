@@ -286,19 +286,7 @@ export default function MatchesPage() {
       /*
        * Open first round automatically.
        */
-      const roundList = [
-        ...new Set(
-          sortedMatches.map(
-            (match) => match.round,
-          ),
-        ),
-      ];
-
-      if (roundList.length > 0) {
-        setExpandedRounds([
-          roundList[0],
-        ]);
-      }
+      
     } catch (error) {
       console.error(
         "Matches page error:",
