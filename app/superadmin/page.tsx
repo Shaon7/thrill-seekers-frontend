@@ -239,9 +239,9 @@ export default function Home() {
 
             <ManagementCard
               icon={<Swords size={24} />}
-              title="Matches"
-              description="View and manage scheduled and completed matches."
-              href="/matches"
+              title="Matches Update"
+              description="Update Completed Match Score"
+              href="/match-update"
             />
 
             <ManagementCard
