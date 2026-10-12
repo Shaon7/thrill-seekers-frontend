@@ -687,7 +687,7 @@ export default function Home() {
 
         <section className="mb-5 sm:mb-6">
           <p className="text-sm font-medium text-zinc-500">
-            Welcome back
+            Welcome back,
           </p>
 
           <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">
@@ -695,11 +695,6 @@ export default function Home() {
               "Player"}
           </h1>
 
-          <p className="mt-2 text-sm text-zinc-400">
-            Here is your latest
-            Thrill Seekers
-            performance.
-          </p>
         </section>
 
         {/* ================================================= */}

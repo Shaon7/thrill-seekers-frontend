@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -49,6 +50,12 @@ export default function AddDivisionPlayersPage() {
   const [players, setPlayers] =
     useState<Player[]>([]);
 
+  const [savingRoster, setSavingRoster] =
+    useState(false);
+
+  const [replacingPlayerId, setReplacingPlayerId] =
+    useState<string | null>(null);
+
   /*
    * Players that were already in the division
    * when this page was opened.
@@ -70,26 +77,50 @@ export default function AddDivisionPlayersPage() {
   const [search, setSearch] =
     useState("");
 
+  /*
+   * ==================================================
+   * DONE — SAVE ROSTER ONLY
+   * ==================================================
+   *
+   * This function does NOT generate matches.
+   * Match generation and league setup happen separately
+   * when SuperAdmin clicks Start League.
+   */
   const handleDone = async () => {
-    if (!division) {
+    if (
+      !division ||
+      savingRoster ||
+      replacingPlayerId
+    ) {
       return;
     }
 
     try {
+      setSavingRoster(true);
+      setError("");
+
       const token =
         localStorage.getItem(
           "access_token"
         );
 
-      /*
-       * ==================================================
-       * SEND NEWLY SELECTED PLAYERS TO BACKEND
-       * ==================================================
-       *
-       * Add only players that were selected on this page
-       * and were not already in the division.
-       */
+      if (!token) {
+        router.push("/login");
+        return;
+      }
 
+      const currentIds =
+        new Set(
+          division.players.map(
+            (player) =>
+              player.playerId
+          )
+        );
+
+      /*
+       * Players selected on this page
+       * who were not in the saved roster initially.
+       */
       const newlyAddedPlayers =
         division.players.filter(
           (player) =>
@@ -98,6 +129,21 @@ export default function AddDivisionPlayersPage() {
             )
         );
 
+      /*
+       * Previously saved players removed
+       * from the current frontend roster.
+       */
+      const removedPlayerIds =
+        [...initialPlayerIds].filter(
+          (playerId) =>
+            !currentIds.has(
+              playerId
+            )
+        );
+
+      /*
+       * SAVE NEWLY ADDED PLAYERS
+       */
       for (
         const player of newlyAddedPlayers
       ) {
@@ -111,24 +157,16 @@ export default function AddDivisionPlayersPage() {
                 "Content-Type":
                   "application/json",
 
-                ...(token
-                  ? {
-                      Authorization:
-                        `Bearer ${token}`,
-                    }
-                  : {}),
+                Authorization:
+                  `Bearer ${token}`,
               },
             }
           );
 
-        let data: any = {};
-
-        try {
-          data =
-            await response.json();
-        } catch {
-          data = {};
-        }
+        const data =
+          await response.json().catch(
+            () => ({})
+          );
 
         if (!response.ok) {
           throw new Error(
@@ -145,68 +183,75 @@ export default function AddDivisionPlayersPage() {
       }
 
       /*
-       * ==================================================
-       * GENERATE MATCHES
-       * ==================================================
+       * SAVE PLAYER REMOVALS
        */
+      for (
+        const playerId of removedPlayerIds
+      ) {
+        const response =
+          await fetch(
+            `https://thrill-seekers-backend-production.up.railway.app/divisions/${division.divisionId}/players/${playerId}`,
+            {
+              method: "DELETE",
 
-      const response = await fetch(
-        `https://thrill-seekers-backend-production.up.railway.app/matches/division/${division.divisionId}/generate`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
+              headers: {
+                Authorization:
+                  `Bearer ${token}`,
+              },
+            }
+          );
 
-            ...(token
-              ? {
-                  Authorization:
-                    `Bearer ${token}`,
-                }
-              : {}),
-          },
+        const data =
+          await response.json().catch(
+            () => ({})
+          );
+
+        if (!response.ok) {
+          throw new Error(
+            Array.isArray(
+              data?.message
+            )
+              ? data.message.join(
+                  ", "
+                )
+              : data?.message ||
+                  `Failed to remove ${playerId}.`
+          );
         }
-      );
-
-      let data: any = {};
-
-      try {
-        data =
-          await response.json();
-      } catch {
-        data = {};
       }
 
-      if (!response.ok) {
-        throw new Error(
-          Array.isArray(
-            data?.message
-          )
-            ? data.message.join(
-                ", "
-              )
-            : data?.message ||
-                "Failed to generate matches."
-        );
-      }
-
+      /*
+       * ROSTER SAVED.
+       *
+       * Do not generate matches here.
+       * Do not create payments here.
+       * Do not start the league here.
+       */
       router.push(
-        `/division/${division.divisionId}/matches`
+        "/division"
       );
 
     } catch (error) {
       console.error(
-        "Generate matches error:",
+        "Save division roster error:",
         error
       );
 
       alert(
         error instanceof Error
           ? error.message
-          : "Failed to generate matches."
+          : "Failed to save the player list."
       );
+    } finally {
+      setSavingRoster(false);
     }
   };
+
+  /*
+   * ==================================================
+   * LOAD DIVISION AND PLAYERS
+   * ==================================================
+   */
 
   useEffect(() => {
     if (divisionId) {
@@ -273,9 +318,14 @@ export default function AddDivisionPlayersPage() {
         );
       }
 
-      setDivision(
-        divisionData
-      );
+      setDivision({
+        ...divisionData,
+        players: Array.isArray(
+          divisionData.players
+        )
+          ? divisionData.players
+          : [],
+      });
 
       setPlayers(
         playersData
@@ -287,11 +337,13 @@ export default function AddDivisionPlayersPage() {
        */
       setInitialPlayerIds(
         new Set(
-          (divisionData.players ||
-            []).map(
-              (player: Player) =>
-                player.playerId
-            )
+          (
+            divisionData.players ||
+            []
+          ).map(
+            (player: Player) =>
+              player.playerId
+          )
         )
       );
 
@@ -399,7 +451,8 @@ export default function AddDivisionPlayersPage() {
    * ADD PLAYER
    * ==================================================
    *
-   * FRONTEND ONLY
+   * FRONTEND ONLY.
+   * The selection is saved when Done is clicked.
    */
 
   const handleAddPlayer = (
@@ -410,7 +463,7 @@ export default function AddDivisionPlayersPage() {
     }
 
     /*
-     * Frontend duplicate protection
+     * Frontend duplicate protection.
      */
     if (
       addedPlayerIds.has(
@@ -421,7 +474,7 @@ export default function AddDivisionPlayersPage() {
     }
 
     /*
-     * Maximum player protection
+     * Maximum player protection.
      */
     if (
       maximumPlayers !== null &&
@@ -446,7 +499,7 @@ export default function AddDivisionPlayersPage() {
     }
 
     /*
-     * Add only to frontend list.
+     * Add only to the frontend list.
      */
     setDivision(
       (current) => {
@@ -472,7 +525,8 @@ export default function AddDivisionPlayersPage() {
    * REMOVE PLAYER
    * ==================================================
    *
-   * FRONTEND ONLY
+   * FRONTEND ONLY.
+   * The removal is saved when Done is clicked.
    */
 
   const handleRemovePlayer = (
@@ -483,7 +537,7 @@ export default function AddDivisionPlayersPage() {
     }
 
     /*
-     * Remove only from frontend list.
+     * Remove only from the frontend list.
      */
     setDivision(
       (current) => {
@@ -503,6 +557,184 @@ export default function AddDivisionPlayersPage() {
         };
       }
     );
+  };
+
+  /*
+   * ==================================================
+   * REPLACE PLAYER
+   * ==================================================
+   *
+   * Uses the existing backend replacement endpoint.
+   * Replacement is saved immediately by the backend.
+   * It does not generate matches or create payments.
+   */
+
+  const handleReplacePlayer = async (
+    newPlayerId: string
+  ) => {
+    if (
+      !division ||
+      !replacingPlayerId ||
+      addingPlayer
+    ) {
+      return;
+    }
+
+    const oldPlayerId =
+      replacingPlayerId;
+
+    /*
+     * Only replace an existing saved player.
+     */
+    if (
+      !initialPlayerIds.has(
+        oldPlayerId
+      )
+    ) {
+      alert(
+        "Only a player already saved in this division can be replaced."
+      );
+      return;
+    }
+
+    /*
+     * The replacement player must not
+     * already be in this division.
+     */
+    if (
+      addedPlayerIds.has(
+        newPlayerId
+      )
+    ) {
+      alert(
+        "That player is already in this division."
+      );
+      return;
+    }
+
+    const newPlayer =
+      players.find(
+        (player) =>
+          player.playerId ===
+          newPlayerId
+      );
+
+    if (!newPlayer) {
+      return;
+    }
+
+    try {
+      const token =
+        localStorage.getItem(
+          "access_token"
+        );
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setAddingPlayer(
+        newPlayerId
+      );
+
+      const response =
+        await fetch(
+          `https://thrill-seekers-backend-production.up.railway.app/divisions/${division.divisionId}/players/${oldPlayerId}/replace/${newPlayerId}`,
+          {
+            method: "PATCH",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${token}`,
+            },
+          }
+        );
+
+      const data =
+        await response.json().catch(
+          () => ({})
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(
+            data?.message
+          )
+            ? data.message.join(
+                ", "
+              )
+            : data?.message ||
+                "Failed to replace player."
+        );
+      }
+
+      /*
+       * Update the visible roster.
+       */
+      setDivision(
+        (current) => {
+          if (!current) {
+            return current;
+          }
+
+          return {
+            ...current,
+
+            players:
+              current.players.map(
+                (player) =>
+                  player.playerId ===
+                  oldPlayerId
+                    ? newPlayer
+                    : player
+              ),
+          };
+        }
+      );
+
+      /*
+       * Update the saved-player baseline.
+       * Done will not add or remove the replacement again.
+       */
+      setInitialPlayerIds(
+        (current) => {
+          const next =
+            new Set(current);
+
+          next.delete(
+            oldPlayerId
+          );
+
+          next.add(
+            newPlayerId
+          );
+
+          return next;
+        }
+      );
+
+      setReplacingPlayerId(
+        null
+      );
+
+    } catch (error) {
+      console.error(
+        "Replace player error:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to replace player."
+      );
+    } finally {
+      setAddingPlayer(null);
+    }
   };
 
   return (
@@ -691,9 +923,42 @@ export default function AddDivisionPlayersPage() {
 
               </div>
 
+              {/* REPLACEMENT INSTRUCTION */}
+
+              {replacingPlayerId && (
+                <div className="border-b border-yellow-400/20 bg-yellow-400/5 px-5 py-3">
+
+                  <p className="text-sm text-yellow-400">
+                    Select a replacement for{" "}
+                    <strong>
+                      {
+                        division.players.find(
+                          (player) =>
+                            player.playerId ===
+                            replacingPlayerId
+                        )?.name
+                      }
+                    </strong>.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setReplacingPlayerId(
+                        null
+                      )
+                    }
+                    className="mt-2 text-xs text-zinc-400 hover:text-white"
+                  >
+                    Cancel replacement
+                  </button>
+
+                </div>
+              )}
+
               {/* FULL WARNING */}
 
-              {isFull && (
+              {isFull && !replacingPlayerId && (
                 <div className="border-b border-yellow-400/10 bg-yellow-400/5 px-5 py-3">
 
                   <p className="text-sm font-medium text-yellow-400">
@@ -738,6 +1003,10 @@ export default function AddDivisionPlayersPage() {
                           player.playerId
                         );
 
+                      const isBeingReplaced =
+                        replacingPlayerId ===
+                        player.playerId;
+
                       return (
                         <div
                           key={
@@ -780,52 +1049,115 @@ export default function AddDivisionPlayersPage() {
 
                           </div>
 
-                          {/* ADD / REMOVE BUTTON */}
+                          {/* ADD / REMOVE / REPLACE BUTTONS */}
 
                           {isAdded ? (
 
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleRemovePlayer(
-                                  player.playerId
-                                )
-                              }
-                              className="flex shrink-0 items-center gap-2 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-2.5 text-sm font-bold text-red-400 transition hover:bg-red-400/20"
-                            >
+                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
 
-                              <X
-                                size={
-                                  16
-                                }
-                              />
+                              {isBeingReplaced ? (
 
-                              Remove
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReplacingPlayerId(
+                                      null
+                                    )
+                                  }
+                                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-bold text-zinc-300 transition hover:bg-white/10 sm:px-4"
+                                >
+                                  <X size={16} />
+                                  Cancel
+                                </button>
 
-                            </button>
+                              ) : (
+
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleRemovePlayer(
+                                        player.playerId
+                                      )
+                                    }
+                                    className="flex shrink-0 items-center gap-2 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2.5 text-sm font-bold text-red-400 transition hover:bg-red-400/20 sm:px-4"
+                                  >
+                                    <X size={16} />
+                                    Remove
+                                  </button>
+
+                                  {initialPlayerIds.has(
+                                    player.playerId
+                                  ) && !replacingPlayerId && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setReplacingPlayerId(
+                                          player.playerId
+                                        )
+                                      }
+                                      className="rounded-xl border border-yellow-400/20 bg-yellow-400/10 px-3 py-2.5 text-sm font-bold text-yellow-400 transition hover:bg-yellow-400/20"
+                                    >
+                                      Replace
+                                    </button>
+                                  )}
+                                </>
+
+                              )}
+
+                            </div>
 
                           ) : (
 
                             <button
                               type="button"
                               disabled={
-                                isFull
+                                (isFull &&
+                                  !replacingPlayerId) ||
+                                addingPlayer !== null
                               }
-                              onClick={() =>
-                                handleAddPlayer(
-                                  player.playerId
-                                )
-                              }
-                              className="flex shrink-0 items-center gap-2 rounded-xl bg-yellow-400 px-4 py-2.5 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-40"
+                              onClick={() => {
+                                if (replacingPlayerId) {
+                                  void handleReplacePlayer(
+                                    player.playerId
+                                  );
+                                } else {
+                                  handleAddPlayer(
+                                    player.playerId
+                                  );
+                                }
+                              }}
+                              className="flex shrink-0 items-center gap-2 rounded-xl bg-yellow-400 px-3 py-2.5 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-40 sm:px-4"
                             >
 
-                              <UserPlus
-                                size={
-                                  16
-                                }
-                              />
+                              {addingPlayer ===
+                              player.playerId ? (
 
-                              Add
+                                <Loader2
+                                  size={16}
+                                  className="animate-spin"
+                                />
+
+                              ) : replacingPlayerId ? (
+
+                                <Check
+                                  size={16}
+                                />
+
+                              ) : (
+
+                                <UserPlus
+                                  size={16}
+                                />
+
+                              )}
+
+                              {addingPlayer ===
+                              player.playerId
+                                ? "Replacing..."
+                                : replacingPlayerId
+                                  ? "Replace"
+                                  : "Add"}
 
                             </button>
 
@@ -855,9 +1187,25 @@ export default function AddDivisionPlayersPage() {
                     onClick={
                       handleDone
                     }
-                    className="rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-yellow-300"
+                    disabled={
+                      savingRoster ||
+                      Boolean(replacingPlayerId) ||
+                      addingPlayer !== null
+                    }
+                    className="flex items-center justify-center gap-2 rounded-xl bg-yellow-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Done
+
+                    {savingRoster && (
+                      <Loader2
+                        size={16}
+                        className="animate-spin"
+                      />
+                    )}
+
+                    {savingRoster
+                      ? "Saving Players..."
+                      : "Done"}
+
                   </button>
 
                 </div>
