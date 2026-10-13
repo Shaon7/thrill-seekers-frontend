@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/app/components/Navbar";
@@ -13,11 +12,9 @@ import {
   Shield,
   Download,
 } from "lucide-react";
-
 /* ================================================== */
 /* PLAYER */
 /* ================================================== */
-
 interface Player {
   id: number;
   playerId: string;
@@ -27,11 +24,9 @@ interface Player {
   konamiId?: string;
   isAdmin?: boolean;
 }
-
 /* ================================================== */
 /* MATCH */
 /* ================================================== */
-
 interface Match {
   id: number;
   matchId: string;
@@ -49,111 +44,86 @@ interface Match {
     | "COMPLETED"
     | "CANCELLED";
 }
-
 /* ================================================== */
 /* DIVISION */
 /* ================================================== */
-
 interface Division {
   id: number;
   competitionId: string;
   players?: Player[];
 }
-
 /* ================================================== */
 /* PAGE */
 /* ================================================== */
-
 export default function MatchesPage() {
   const router = useRouter();
-
   const [player, setPlayer] =
     useState<Player | null>(null);
-
   /*
    * Matches belonging to the logged-in player.
    */
   const [matches, setMatches] =
     useState<Match[]>([]);
-
   /*
    * ALL matches from backend.
    * Required for admin assigned matches.
    */
   const [allMatches, setAllMatches] =
     useState<Match[]>([]);
-
   const [playersById, setPlayersById] =
     useState<Record<string, Player>>({});
-
   const [loading, setLoading] =
     useState(true);
-
   const [error, setError] =
     useState("");
-
   const [activeTab, setActiveTab] =
     useState<
       "UPCOMING" | "COMPLETED" | "ASSIGNED"
     >("UPCOMING");
-
   /* ==================================================
      LOAD DATA
   ================================================== */
-
   useEffect(() => {
     const loadMatches = async () => {
       try {
         setLoading(true);
         setError("");
-
         /*
          * ================================================
          * LOAD LOGGED-IN PLAYER
          * ================================================
          */
-
         const storedPlayer =
           localStorage.getItem("player");
-
         if (!storedPlayer) {
           setError(
             "Player information was not found. Please login again."
           );
-
           setLoading(false);
           return;
         }
-
         const loggedInPlayer: Player =
           JSON.parse(storedPlayer);
-
         if (!loggedInPlayer?.playerId) {
           setError(
             "Player ID was not found. Please login again."
           );
-
           setLoading(false);
           return;
         }
-
         setPlayer(loggedInPlayer);
-
         /*
          * ================================================
          * TOKEN
          * ================================================
          */
-
         const token =
           localStorage.getItem(
             "access_token"
           );
-
         const headers: HeadersInit = {
           "Content-Type":
             "application/json",
-
           ...(token
             ? {
                 Authorization:
@@ -161,16 +131,15 @@ export default function MatchesPage() {
               }
             : {}),
         };
-
         /*
          * ================================================
          * LOAD MATCHES + DIVISIONS
          * ================================================
          */
-
         const [
           matchesResponse,
           divisionsResponse,
+          playersResponse,
         ] = await Promise.all([
           fetch(
             "https://thrill-seekers-backend-production.up.railway.app/matches",
@@ -180,7 +149,6 @@ export default function MatchesPage() {
               cache: "no-store",
             }
           ),
-
           fetch(
             "https://thrill-seekers-backend-production.up.railway.app/divisions",
             {
@@ -189,25 +157,28 @@ export default function MatchesPage() {
               cache: "no-store",
             }
           ),
+          fetch(
+            "https://thrill-seekers-backend-production.up.railway.app/player",
+            {
+              method: "GET",
+              headers,
+              cache: "no-store",
+            }
+          ),
         ]);
-
         if (!matchesResponse.ok) {
           throw new Error(
             "Failed to load matches."
           );
         }
-
         /*
          * ================================================
          * MATCH DATA
          * ================================================
          */
-
         const matchesData =
           await matchesResponse.json();
-
         let fetchedMatches: Match[] = [];
-
         if (
           Array.isArray(matchesData)
         ) {
@@ -221,7 +192,6 @@ export default function MatchesPage() {
           fetchedMatches =
             matchesData.data;
         }
-
         /*
          * Save ALL backend matches.
          *
@@ -229,30 +199,24 @@ export default function MatchesPage() {
          * assigned to a match where the admin is NOT
          * one of the two players.
          */
-
         setAllMatches(
           fetchedMatches
         );
-
         /*
          * ================================================
          * BUILD PLAYER LOOKUP
          * ================================================
          */
-
         const playerLookup: Record<
           string,
           Player
         > = {};
-
         if (
           divisionsResponse.ok
         ) {
           const divisionsData =
             await divisionsResponse.json();
-
           let divisions: Division[] = [];
-
           if (
             Array.isArray(
               divisionsData
@@ -268,7 +232,6 @@ export default function MatchesPage() {
             divisions =
               divisionsData.data;
           }
-
           divisions.forEach(
             (division) => {
               division.players?.forEach(
@@ -284,7 +247,6 @@ export default function MatchesPage() {
                     ] =
                       divisionPlayer;
                   }
-
                   /*
                    * Numeric database ID lookup
                    */
@@ -304,25 +266,39 @@ export default function MatchesPage() {
             }
           );
         }
-
+        // Add all players to the lookup as well as division players.
+        // This lets the schedule show names for players who are missing
+        // from a division's player relation but still exist in the player table.
+        if (playersResponse.ok) {
+          const playersData = await playersResponse.json();
+          const allPlayers: Player[] = Array.isArray(playersData)
+            ? playersData
+            : Array.isArray(playersData?.data)
+              ? playersData.data
+              : [];
+          allPlayers.forEach((allPlayer) => {
+            if (allPlayer?.playerId) {
+              playerLookup[allPlayer.playerId.trim()] = allPlayer;
+            }
+            if (allPlayer?.id !== undefined && allPlayer?.id !== null) {
+              playerLookup[String(allPlayer.id)] = allPlayer;
+            }
+          });
+        }
         /*
          * Make sure logged-in player is available.
          */
-
         playerLookup[
           loggedInPlayer.playerId
         ] = loggedInPlayer;
-
         playerLookup[
           String(
             loggedInPlayer.id
           )
         ] = loggedInPlayer;
-
         setPlayersById(
           playerLookup
         );
-
         /*
          * ================================================
          * PLAYER'S OWN MATCHES
@@ -333,7 +309,6 @@ export default function MatchesPage() {
          * Only matches where the logged-in player
          * is home or away.
          */
-
         const playerMatches =
           fetchedMatches.filter(
             (match) =>
@@ -342,17 +317,14 @@ export default function MatchesPage() {
               match.awayPlayerId ===
                 loggedInPlayer.playerId
           );
-
         setMatches(
           playerMatches
         );
-
       } catch (error) {
         console.error(
           "Matches loading error:",
           error
         );
-
         if (
           error instanceof
           TypeError
@@ -375,20 +347,16 @@ export default function MatchesPage() {
         setLoading(false);
       }
     };
-
     loadMatches();
   }, []);
-
   /* ==================================================
      FILTER + SORT
   ================================================== */
-
   const displayedMatches =
     useMemo(() => {
       if (!player) {
         return [];
       }
-
       /*
        * ================================================
        * UPCOMING
@@ -397,7 +365,6 @@ export default function MatchesPage() {
        * Only the logged-in player's matches.
        * Earliest match first.
        */
-
       if (
         activeTab ===
         "UPCOMING"
@@ -420,7 +387,6 @@ export default function MatchesPage() {
               ).getTime()
           );
       }
-
       /*
        * ================================================
        * COMPLETED
@@ -429,7 +395,6 @@ export default function MatchesPage() {
        * Only the logged-in player's matches.
        * Most recently completed first.
        */
-
       if (
         activeTab ===
         "COMPLETED"
@@ -450,7 +415,6 @@ export default function MatchesPage() {
               ).getTime()
           );
       }
-
       /*
        * ================================================
        * ASSIGNED TO ME
@@ -462,7 +426,6 @@ export default function MatchesPage() {
        * An admin can be assigned to a match between
        * two completely different players.
        */
-
       return [...allMatches]
         .filter(
           (match) =>
@@ -476,38 +439,32 @@ export default function MatchesPage() {
             /*
              * Upcoming assigned matches first.
              */
-
             const aUpcoming =
               a.status ===
                 "SCHEDULED" ||
               a.status ===
                 "RESCHEDULED";
-
             const bUpcoming =
               b.status ===
                 "SCHEDULED" ||
               b.status ===
                 "RESCHEDULED";
-
             if (
               aUpcoming &&
               !bUpcoming
             ) {
               return -1;
             }
-
             if (
               !aUpcoming &&
               bUpcoming
             ) {
               return 1;
             }
-
             /*
              * Both upcoming:
              * earliest first.
              */
-
             if (
               aUpcoming &&
               bUpcoming
@@ -521,12 +478,10 @@ export default function MatchesPage() {
                 ).getTime()
               );
             }
-
             /*
              * Both completed/other:
              * newest first.
              */
-
             return (
               new Date(
                 b.deadline
@@ -543,11 +498,9 @@ export default function MatchesPage() {
       activeTab,
       player,
     ]);
-
   /* ==================================================
      COUNTS
   ================================================== */
-
   const upcomingCount =
     matches.filter(
       (match) =>
@@ -556,18 +509,15 @@ export default function MatchesPage() {
         match.status ===
           "RESCHEDULED"
     ).length;
-
   const completedCount =
     matches.filter(
       (match) =>
         match.status ===
         "COMPLETED"
     ).length;
-
   /*
    * Assigned count MUST use all matches.
    */
-
   const assignedCount =
     player?.isAdmin
       ? allMatches.filter(
@@ -578,17 +528,14 @@ export default function MatchesPage() {
               String(player.id)
         ).length
       : 0;
-
   /* ==================================================
      DATE
   ================================================== */
-
   const formatDate = (
     value: string
   ) => {
     const date =
       new Date(value);
-
     if (
       Number.isNaN(
         date.getTime()
@@ -596,7 +543,6 @@ export default function MatchesPage() {
     ) {
       return "Unknown date";
     }
-
     return date.toLocaleDateString(
       undefined,
       {
@@ -606,17 +552,14 @@ export default function MatchesPage() {
       }
     );
   };
-
   /* ==================================================
      TIME
   ================================================== */
-
   const formatTime = (
     value: string
   ) => {
     const date =
       new Date(value);
-
     if (
       Number.isNaN(
         date.getTime()
@@ -624,7 +567,6 @@ export default function MatchesPage() {
     ) {
       return "Unknown time";
     }
-
     return date.toLocaleTimeString(
       undefined,
       {
@@ -633,16 +575,13 @@ export default function MatchesPage() {
       }
     );
   };
-
     // ==================================================
   // DOWNLOAD NEXT 10 FIXTURE
   // ==================================================
-
   const downloadFixture = async () => {
     if (!player) {
       return;
     }
-
     const upcomingFixtures = [...matches]
       .filter(
         (match) =>
@@ -655,95 +594,77 @@ export default function MatchesPage() {
           new Date(b.deadline).getTime(),
       )
       .slice(0, 10);
-
       const fixtureCount = upcomingFixtures.length;
-
     if (upcomingFixtures.length === 0) {
       window.alert(
         "You currently have no upcoming matches.",
       );
       return;
     }
-
     try {
       const { jsPDF } = await import("jspdf");
       const { default: autoTable } =
         await import("jspdf-autotable");
-
       const doc = new jsPDF({
         orientation: "portrait",
         unit: "mm",
         format: "a4",
       });
-
       const pageWidth =
         doc.internal.pageSize.getWidth();
-
       const pageHeight =
         doc.internal.pageSize.getHeight();
-
       // -----------------------------------------------
       // COLORS
       // -----------------------------------------------
-
       const navy = [7, 11, 23] as [
         number,
         number,
         number,
       ];
-
       const purple = [91, 33, 182] as [
         number,
         number,
         number,
       ];
-
       const blue = [37, 99, 235] as [
         number,
         number,
         number,
       ];
-
       const cyan = [6, 182, 212] as [
         number,
         number,
         number,
       ];
-
       const gold = [250, 204, 21] as [
         number,
         number,
         number,
       ];
-
       const white = [255, 255, 255] as [
         number,
         number,
         number,
       ];
-
       const darkText = [30, 41, 59] as [
         number,
         number,
         number,
       ];
-
       const lightBackground = [248, 250, 252] as [
         number,
         number,
         number,
       ];
-
       // -----------------------------------------------
       // BACKGROUND
       // -----------------------------------------------
-
       doc.setFillColor(
         lightBackground[0],
         lightBackground[1],
         lightBackground[2],
       );
-
       doc.rect(
         0,
         0,
@@ -751,17 +672,14 @@ export default function MatchesPage() {
         pageHeight,
         "F",
       );
-
       // -----------------------------------------------
       // TOP HEADER
       // -----------------------------------------------
-
       doc.setFillColor(
         navy[0],
         navy[1],
         navy[2],
       );
-
       doc.rect(
         0,
         0,
@@ -769,15 +687,12 @@ export default function MatchesPage() {
         52,
         "F",
       );
-
       // Purple accent
-
       doc.setFillColor(
         purple[0],
         purple[1],
         purple[2],
       );
-
       doc.rect(
         0,
         0,
@@ -785,15 +700,12 @@ export default function MatchesPage() {
         4,
         "F",
       );
-
       // Cyan accent
-
       doc.setFillColor(
         cyan[0],
         cyan[1],
         cyan[2],
       );
-
       doc.rect(
         0,
         48,
@@ -801,24 +713,19 @@ export default function MatchesPage() {
         4,
         "F",
       );
-
       // -----------------------------------------------
       // LOGO
       // -----------------------------------------------
-
       try {
         const imageResponse =
           await fetch("/icon.png");
-
         const imageBlob =
           await imageResponse.blob();
-
         const imageData =
           await new Promise<string>(
             (resolve, reject) => {
               const reader =
                 new FileReader();
-
               reader.onloadend = () => {
                 resolve(
                   String(
@@ -826,15 +733,12 @@ export default function MatchesPage() {
                   ),
                 );
               };
-
               reader.onerror = reject;
-
               reader.readAsDataURL(
                 imageBlob,
               );
             },
           );
-
         doc.addImage(
           imageData,
           "PNG",
@@ -849,46 +753,36 @@ export default function MatchesPage() {
           error,
         );
       }
-
       // -----------------------------------------------
       // HEADER TEXT
       // -----------------------------------------------
-
       doc.setTextColor(
         gold[0],
         gold[1],
         gold[2],
       );
-
       doc.setFont(
         "helvetica",
         "bold",
       );
-
       doc.setFontSize(20);
-
       doc.text(
         "THRILL SEEKERS",
         48,
         19,
       );
-
       doc.setTextColor(
         white[0],
         white[1],
         white[2],
       );
-
       doc.setFontSize(10);
-
       doc.text(
         "eFOOTBALL CLUB",
         49,
         27,
       );
-
       doc.setFontSize(16);
-
       doc.text(
         "MATCH FIXTURE",
         pageWidth - 14,
@@ -897,15 +791,12 @@ export default function MatchesPage() {
           align: "right",
         },
       );
-
       doc.setFontSize(8);
-
       doc.setTextColor(
         203,
         213,
         225,
       );
-
       doc.text(
         "UPCOMING MATCH SCHEDULE",
         pageWidth - 14,
@@ -914,25 +805,20 @@ export default function MatchesPage() {
           align: "right",
         },
       );
-
       // -----------------------------------------------
       // IMPORTANT NOTE
       // -----------------------------------------------
-
       doc.setFillColor(
         255,
         247,
         237,
       );
-
       doc.setDrawColor(
         gold[0],
         gold[1],
         gold[2],
       );
-
       doc.setLineWidth(0.5);
-
       doc.roundedRect(
         14,
         61,
@@ -942,20 +828,16 @@ export default function MatchesPage() {
         3,
         "FD",
       );
-
       doc.setTextColor(
         146,
         64,
         14,
       );
-
       doc.setFont(
         "helvetica",
         "bold",
       );
-
       doc.setFontSize(10);
-
       doc.text(
          `NB: This is your next ${fixtureCount} match fixture, not all match fixture.`,
         pageWidth / 2,
@@ -964,23 +846,19 @@ export default function MatchesPage() {
           align: "center",
         },
       );
-
       // -----------------------------------------------
       // PLAYER INFORMATION
       // -----------------------------------------------
-
       doc.setFillColor(
         255,
         255,
         255,
       );
-
       doc.setDrawColor(
         226,
         232,
         240,
       );
-
       doc.roundedRect(
         14,
         85,
@@ -990,32 +868,26 @@ export default function MatchesPage() {
         4,
         "FD",
       );
-
       doc.setTextColor(
         100,
         116,
         139,
       );
-
       doc.setFontSize(8);
-
       doc.setFont(
         "helvetica",
         "bold",
       );
-
       doc.text(
         "PLAYER",
         20,
         94,
       );
-
       doc.text(
         "PLAYER ID",
         105,
         94,
       );
-
       doc.text(
         "FIXTURES",
         pageWidth - 20,
@@ -1024,42 +896,33 @@ export default function MatchesPage() {
           align: "right",
         },
       );
-
       doc.setTextColor(
         darkText[0],
         darkText[1],
         darkText[2],
       );
-
       doc.setFontSize(12);
-
       doc.setFont(
         "helvetica",
         "bold",
       );
-
       doc.text(
         player.name,
         20,
         104,
       );
-
       doc.setFontSize(10);
-
       doc.text(
         player.playerId,
         105,
         104,
       );
-
       doc.setTextColor(
         blue[0],
         blue[1],
         blue[2],
       );
-
       doc.setFontSize(11);
-
       doc.text(
         `${upcomingFixtures.length} UPCOMING`,
         pageWidth - 20,
@@ -1068,49 +931,39 @@ export default function MatchesPage() {
           align: "right",
         },
       );
-
       // -----------------------------------------------
       // SMALL SECTION LABEL
       // -----------------------------------------------
-
       doc.setTextColor(
         purple[0],
         purple[1],
         purple[2],
       );
-
       doc.setFont(
         "helvetica",
         "bold",
       );
-
       doc.setFontSize(9);
-
       doc.text(
         "NEXT 10 FIXTURES",
         14,
         127,
       );
-
       doc.setDrawColor(
         203,
         213,
         225,
       );
-
       doc.setLineWidth(0.4);
-
       doc.line(
         14,
         130,
         pageWidth - 14,
         130,
       );
-
       // -----------------------------------------------
       // TABLE DATA
       // -----------------------------------------------
-
       const tableBody =
         upcomingFixtures.map(
           (match, index) => {
@@ -1118,45 +971,36 @@ export default function MatchesPage() {
               playersById[
                 match.homePlayerId
               ];
-
             const awayPlayer =
               playersById[
                 match.awayPlayerId
               ];
-
             const isHome =
               match.homePlayerId ===
               player.playerId;
-
             const opponent =
               isHome
                 ? awayPlayer?.name ||
                   match.awayPlayerId
                 : homePlayer?.name ||
                   match.homePlayerId;
-
             const fixture =
-              `${player.name}  vs  ${opponent}`;
-
+              `${player.name} vs ${opponent}`;
             const position =
               isHome
                 ? "HOME"
                 : "AWAY";
-
             const deadlineDate =
               new Date(
                 match.deadline,
               );
-
             const matchDay =
               new Date(
                 deadlineDate,
               );
-
             matchDay.setDate(
               matchDay.getDate() - 1,
             );
-
             const matchDayText =
               matchDay.toLocaleDateString(
                 undefined,
@@ -1166,7 +1010,6 @@ export default function MatchesPage() {
                   year: "numeric",
                 },
               );
-
             const deadlineText =
               `${deadlineDate.toLocaleDateString(
                 undefined,
@@ -1181,7 +1024,6 @@ export default function MatchesPage() {
                   minute: "2-digit",
                 },
               )}`;
-
             return [
               String(index + 1).padStart(
                 2,
@@ -1195,14 +1037,11 @@ export default function MatchesPage() {
             ];
           },
         );
-
       // -----------------------------------------------
       // FIXTURE TABLE
       // -----------------------------------------------
-
       autoTable(doc, {
         startY: 135,
-
         head: [[
           "#",
           "ROUND",
@@ -1211,14 +1050,11 @@ export default function MatchesPage() {
           "MATCH DAY",
           "DEADLINE",
         ]],
-
         body: tableBody,
-
         margin: {
           left: 14,
           right: 14,
         },
-
         styles: {
           font: "helvetica",
           fontSize: 8.5,
@@ -1232,7 +1068,6 @@ export default function MatchesPage() {
           lineWidth: 0.25,
           valign: "middle",
         },
-
         headStyles: {
           fillColor: navy,
           textColor: white,
@@ -1242,7 +1077,6 @@ export default function MatchesPage() {
           valign: "middle",
           cellPadding: 4,
         },
-
         alternateRowStyles: {
           fillColor: [
             241,
@@ -1250,46 +1084,38 @@ export default function MatchesPage() {
             249,
           ],
         },
-
         bodyStyles: {
           fillColor: white,
         },
-
         columnStyles: {
           0: {
             cellWidth: 10,
             halign: "center",
             fontStyle: "bold",
           },
-
           1: {
             cellWidth: 22,
             halign: "center",
           },
-
           2: {
             cellWidth: 60,
             fontStyle: "bold",
           },
-
           3: {
             cellWidth: 20,
             halign: "center",
             fontStyle: "bold",
             textColor: blue,
           },
-
           4: {
             cellWidth: 31,
             halign: "center",
           },
-
           5: {
             cellWidth: 35,
             halign: "center",
           },
         },
-
         didParseCell: (data) => {
           if (
             data.section ===
@@ -1298,64 +1124,50 @@ export default function MatchesPage() {
           ) {
             const value =
               String(data.cell.raw);
-
             if (value === "HOME") {
               data.cell.styles.textColor =
                 blue;
-
               data.cell.styles.fillColor =
                 [219, 234, 254];
             }
-
             if (value === "AWAY") {
               data.cell.styles.textColor =
                 [147, 51, 234];
-
               data.cell.styles.fillColor =
                 [243, 232, 255];
             }
           }
         },
-
         didDrawPage: (data) => {
           const currentPage = data.pageNumber;
-
           // Footer
-
           doc.setDrawColor(
             226,
             232,
             240,
           );
-
           doc.setLineWidth(0.3);
-
           doc.line(
             14,
             pageHeight - 18,
             pageWidth - 14,
             pageHeight - 18,
           );
-
           doc.setFont(
             "helvetica",
             "normal",
           );
-
           doc.setFontSize(7.5);
-
           doc.setTextColor(
             100,
             116,
             139,
           );
-
           doc.text(
             "Thrill Seekers • eFootball Club",
             14,
             pageHeight - 11,
           );
-
           doc.text(
             `Page ${currentPage}`,
             pageWidth - 14,
@@ -1364,7 +1176,6 @@ export default function MatchesPage() {
               align: "right",
             },
           );
-
           doc.text(
             new Date().toLocaleDateString(
               undefined,
@@ -1382,32 +1193,26 @@ export default function MatchesPage() {
           );
         },
       });
-
       // -----------------------------------------------
       // FINAL FOOTER BADGE
       // -----------------------------------------------
-
       const finalY =
         (doc as any).lastAutoTable?.finalY ||
         135;
-
       if (
         finalY < pageHeight - 55
       ) {
         const boxY = finalY + 12;
-
         doc.setFillColor(
           239,
           246,
           255,
         );
-
         doc.setDrawColor(
           blue[0],
           blue[1],
           blue[2],
         );
-
         doc.roundedRect(
           14,
           boxY,
@@ -1417,50 +1222,40 @@ export default function MatchesPage() {
           4,
           "FD",
         );
-
         doc.setTextColor(
           blue[0],
           blue[1],
           blue[2],
         );
-
         doc.setFont(
           "helvetica",
           "bold",
         );
-
         doc.setFontSize(9);
-
         doc.text(
           "MATCH DAY REMINDER",
           20,
           boxY + 9,
         );
-
         doc.setTextColor(
           71,
           85,
           105,
         );
-
         doc.setFont(
           "helvetica",
           "normal",
         );
-
         doc.setFontSize(8);
-
         doc.text(
           "Please complete every fixture before its deadline.",
           20,
           boxY + 16,
         );
       }
-
       // -----------------------------------------------
       // DOWNLOAD
       // -----------------------------------------------
-
       const safePlayerName =
         player.name
           .trim()
@@ -1472,7 +1267,6 @@ export default function MatchesPage() {
             /^-+|-+$/g,
             "",
           );
-
       doc.save(
         `Thrill-Seekers-${safePlayerName}-Fixture.pdf`,
       );
@@ -1481,111 +1275,78 @@ export default function MatchesPage() {
         "Fixture PDF generation error:",
         error,
       );
-
       window.alert(
         "Unable to generate the fixture PDF.",
       );
     }
   };
-
   /* ==================================================
      LOADING
   ================================================== */
-
   if (loading) {
     return (
       <main className="min-h-screen bg-[#080808] text-white">
-
         <Navbar />
-
         <div className="mx-auto flex min-h-[70vh] max-w-7xl items-center justify-center px-4">
-
           <div className="flex flex-col items-center gap-3">
-
             <Loader2
               size={34}
               className="animate-spin text-yellow-400"
             />
-
             <p className="text-sm text-zinc-400">
               Loading your matches...
             </p>
-
           </div>
         </div>
       </main>
     );
   }
-
   /* ==================================================
      ERROR
   ================================================== */
-
   if (error) {
     return (
       <main className="min-h-screen bg-[#080808] text-white">
-
         <Navbar />
-
         <div className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-
           <div className="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
-
             <h2 className="font-semibold text-red-400">
               Unable to load matches
             </h2>
-
             <p className="mt-2 text-sm text-red-400/80">
               {error}
             </p>
-
           </div>
-
         </div>
       </main>
     );
   }
-
   return (
     <main className="min-h-screen bg-[#080808] text-white">
-
       <Navbar />
-
       <div className="mx-auto max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-
         {/* ==================================================
             PAGE HEADER
         ================================================== */}
-
         <section className="mb-8">
-
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-6 sm:p-8">
-
             <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-yellow-400/10 blur-3xl" />
-
             <div className="relative">
-
               <div className="flex items-center gap-3">
-
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400 text-black">
                   <Gamepad2
                     size={23}
                   />
                 </div>
-
                 <div>
-
                   <p className="text-xs font-semibold tracking-[0.2em] text-yellow-400">
                     PLAYER MATCHES
                   </p>
-
                   <h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">
                     My Matches
                   </h1>
-
                 </div>
               </div>
-
               <p className="mt-4 max-w-2xl text-sm leading-6 text-zinc-400">
                 All matches played and scheduled
                 for{" "}
@@ -1594,7 +1355,6 @@ export default function MatchesPage() {
                 </span>
                 .
               </p>
-
               <button
   type="button"
   onClick={downloadFixture}
@@ -1603,24 +1363,17 @@ export default function MatchesPage() {
   <Download size={17} />
   Download Fixture
 </button>
-
             </div>
           </div>
-
         </section>
-
         {/* ==================================================
             TABS
         ================================================== */}
-
         <section className="mb-6">
-
           <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-zinc-900/60 p-2 sm:flex-row">
-
             {/* ==================================================
                 UPCOMING
             ================================================== */}
-
             <button
               type="button"
               onClick={() =>
@@ -1638,9 +1391,7 @@ export default function MatchesPage() {
               <Clock3
                 size={17}
               />
-
               Upcoming
-
               <span
                 className={`rounded-full px-2 py-0.5 text-xs ${
                   activeTab ===
@@ -1652,11 +1403,9 @@ export default function MatchesPage() {
                 {upcomingCount}
               </span>
             </button>
-
             {/* ==================================================
                 COMPLETED
             ================================================== */}
-
             <button
               type="button"
               onClick={() =>
@@ -1674,9 +1423,7 @@ export default function MatchesPage() {
               <Trophy
                 size={17}
               />
-
               Completed
-
               <span
                 className={`rounded-full px-2 py-0.5 text-xs ${
                   activeTab ===
@@ -1688,12 +1435,10 @@ export default function MatchesPage() {
                 {completedCount}
               </span>
             </button>
-
             {/* ==================================================
                 ASSIGNED TO ME
                 ONLY FOR ADMIN
             ================================================== */}
-
             {player?.isAdmin && (
               <button
                 type="button"
@@ -1712,9 +1457,7 @@ export default function MatchesPage() {
                 <Shield
                   size={17}
                 />
-
                 Assigned to Me
-
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs ${
                     activeTab ===
@@ -1727,27 +1470,19 @@ export default function MatchesPage() {
                 </span>
               </button>
             )}
-
           </div>
-
         </section>
-
         {/* ==================================================
             MATCHES
         ================================================== */}
-
         {displayedMatches.length ===
         0 ? (
-
           <div className="rounded-3xl border border-white/10 bg-zinc-900/60 p-10 text-center">
-
             <Gamepad2
               size={38}
               className="mx-auto text-zinc-600"
             />
-
             <h2 className="mt-4 text-lg font-semibold text-zinc-300">
-
               {activeTab ===
               "UPCOMING"
                 ? "No upcoming matches"
@@ -1755,11 +1490,8 @@ export default function MatchesPage() {
                   "COMPLETED"
                 ? "No completed matches"
                 : "No matches assigned to you"}
-
             </h2>
-
             <p className="mt-2 text-sm text-zinc-600">
-
               {activeTab ===
               "UPCOMING"
                 ? "You currently have no scheduled matches."
@@ -1767,15 +1499,10 @@ export default function MatchesPage() {
                   "COMPLETED"
                 ? "You have not completed any matches yet."
                 : "You currently have no matches assigned to you."}
-
             </p>
-
           </div>
-
         ) : (
-
           <div className="space-y-4">
-
             {displayedMatches.map(
               (match) => (
                 <MatchCard
@@ -1806,19 +1533,15 @@ export default function MatchesPage() {
                 />
               )
             )}
-
           </div>
         )}
-
       </div>
     </main>
   );
 }
-
 /* ================================================== */
 /* MATCH CARD */
 /* ================================================== */
-
 function MatchCard({
   match,
   playerId,
@@ -1847,49 +1570,40 @@ function MatchCard({
     playersById[
       match.homePlayerId
     ];
-
   const awayPlayer =
     playersById[
       match.awayPlayerId
     ];
-
   /*
    * ================================================
    * MATCH ADMIN
    * ================================================
    */
-
   const matchAdmin =
     match.assignedAdminId
       ? playersById[
           match.assignedAdminId
         ]
       : null;
-
   const isHome =
     match.homePlayerId ===
     playerId;
-
   const isCompleted =
     match.status ===
     "COMPLETED";
-
   let result:
     | "WIN"
     | "DRAW"
     | "LOSS"
     | null = null;
-
   if (isCompleted) {
     const myScore = isHome
       ? match.homeScore ?? 0
       : match.awayScore ?? 0;
-
     const opponentScore =
       isHome
         ? match.awayScore ?? 0
         : match.homeScore ?? 0;
-
     if (
       myScore >
       opponentScore
@@ -1904,20 +1618,16 @@ function MatchCard({
       result = "DRAW";
     }
   }
-
   /*
    * Submit result should be available
    * only when viewing Assigned to Me,
    * and the match is not completed.
    */
-
   const isPlayerMatch =
   match.homePlayerId === playerId ||
   match.awayPlayerId === playerId;
-
 const isAssignedAdmin =
   match.assignedAdminId === playerId;
-
 const showSubmitResult =
   !isCompleted &&
   (
@@ -1928,19 +1638,13 @@ const showSubmitResult =
     isPlayerMatch ||
     isAssignedAdmin
   );
-
   return (
-
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-5 transition hover:border-yellow-400/20 hover:bg-zinc-900 sm:p-6">
-
       {/* ==================================================
           TOP ROW
       ================================================== */}
-
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-
         <div className="flex flex-wrap items-center gap-2">
-
           {isCompleted ? (
             <span className="rounded-full border border-green-400/20 bg-green-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-green-400">
               Completed
@@ -1955,31 +1659,22 @@ const showSubmitResult =
               Upcoming
             </span>
           )}
-
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
             Round{" "}
             {match.round}
           </span>
-
         </div>
-
         <ChevronRight
           size={18}
           className="text-zinc-600"
         />
-
       </div>
-
       {/* ==================================================
           PLAYERS + SCORE
       ================================================== */}
-
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-
         {/* HOME */}
-
         <div className="min-w-0">
-
           <p
             className={`truncate text-base font-bold sm:text-lg ${
               isHome
@@ -1990,53 +1685,36 @@ const showSubmitResult =
             {homePlayer?.name ||
               match.homePlayerId}
           </p>
-
           {homePlayer?.playerId && (
             <p className="mt-1 text-xs text-zinc-600">
               {homePlayer.playerId}
             </p>
           )}
-
           {isHome && (
             <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-yellow-400">
               You
             </span>
           )}
-
         </div>
-
         {/* SCORE */}
-
         <div className="flex min-w-[95px] flex-col items-center">
-
           <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-2">
-
             {isCompleted ? (
-
               <span className="text-xl font-black tracking-tight text-white sm:text-2xl">
-
                 {match.homeScore ??
                   0}
-
                 <span className="mx-2 text-zinc-600">
                   -
                 </span>
-
                 {match.awayScore ??
                   0}
-
               </span>
-
             ) : (
-
               <span className="text-sm font-bold text-zinc-500">
                 VS
               </span>
-
             )}
-
           </div>
-
           {result && (
             <span
               className={`mt-2 text-[10px] font-bold uppercase tracking-wider ${
@@ -2052,13 +1730,9 @@ const showSubmitResult =
               {result}
             </span>
           )}
-
         </div>
-
         {/* AWAY */}
-
         <div className="min-w-0 text-right">
-
           <p
             className={`truncate text-base font-bold sm:text-lg ${
               !isHome
@@ -2069,80 +1743,57 @@ const showSubmitResult =
             {awayPlayer?.name ||
               match.awayPlayerId}
           </p>
-
           {awayPlayer?.playerId && (
             <p className="mt-1 text-xs text-zinc-600">
               {awayPlayer.playerId}
             </p>
           )}
-
           {!isHome && (
             <span className="mt-2 inline-block text-[10px] font-bold uppercase tracking-wider text-yellow-400">
               You
             </span>
           )}
-
         </div>
-
       </div>
-
       {/* ==================================================
           MATCH ADMIN
       ================================================== */}
-
       <div className="mt-4 text-center">
-
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">
           Match Admin
         </p>
-
         <p className="mt-1 text-xs font-semibold text-zinc-400">
           {matchAdmin?.name ||
             match.assignedAdminId ||
             "Not assigned"}
         </p>
-
       </div>
-
       {/* ==================================================
           MATCH DETAILS
       ================================================== */}
-
       <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-4">
-
         <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-
           <CalendarDays
             size={14}
           />
-
           {formatDate(
             match.deadline
           )}
-
         </div>
-
         <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-
           <Clock3
             size={14}
           />
-
           {formatTime(
             match.deadline
           )}
-
         </div>
-
       </div>
-
       {/* ==================================================
           SUBMIT RESULT
       ================================================== */}
-
       {showSubmitResult && (
         <div className="mt-4 border-t border-white/10 pt-4">
-
           <button
             type="button"
             onClick={
@@ -2152,10 +1803,8 @@ const showSubmitResult =
           >
             Submit Result
           </button>
-
         </div>
       )}
-
     </div>
   );
 }
