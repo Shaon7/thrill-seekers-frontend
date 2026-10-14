@@ -532,8 +532,10 @@ export default function MatchesPage() {
      DATE
   ================================================== */
   const formatDate = (
-    value: string
+    value: string | null | undefined,
   ) => {
+    if(!value)
+      return "TBD"
     const date =
       new Date(value);
     if (
@@ -556,8 +558,10 @@ export default function MatchesPage() {
      TIME
   ================================================== */
   const formatTime = (
-    value: string
+    value: string | null | undefined
   ) => {
+    if(!value)
+      return ""
     const date =
       new Date(value);
     if (

@@ -171,9 +171,6 @@ export default function MatchesPage() {
           "access_token",
         );
 
-      /*
-       * Load division first.
-       */
       const divisionResponse =
         await fetch(
           `https://thrill-seekers-backend-production.up.railway.app/divisions/${divisionId}`,
@@ -220,9 +217,6 @@ export default function MatchesPage() {
       const divisionData: Division =
         await divisionResponse.json();
 
-      /*
-       * Load only matches for this division.
-       */
       const matchesResponse =
         await fetch(
           `https://thrill-seekers-backend-production.up.railway.app/matches/competition/${divisionData.competitionId}`,
@@ -282,11 +276,6 @@ export default function MatchesPage() {
       setDivision(divisionData);
 
       setMatches(sortedMatches);
-
-      /*
-       * Open first round automatically.
-       */
-      
     } catch (error) {
       console.error(
         "Matches page error:",
@@ -361,9 +350,6 @@ export default function MatchesPage() {
   const canSubmitMatch = (
     match: Match,
   ) => {
-    /*
-     * SuperAdmin can submit any match.
-     */
     if (isSuperAdmin) {
       return true;
     }
@@ -375,19 +361,12 @@ export default function MatchesPage() {
       return true;
     }
 
-    /*
-     * Logged-in player's own match.
-     */
     const isOwnMatch =
       match.homePlayerId ===
         currentPlayerId ||
       match.awayPlayerId ===
         currentPlayerId;
 
-    /*
-     * Admin can also submit matches
-     * specifically assigned to them.
-     */
     const isAssignedAdmin =
       userType === "player" &&
       storedPlayer?.isAdmin === true &&
@@ -438,8 +417,11 @@ export default function MatchesPage() {
   // =====================================================
 
   const formatDeadline = (
-    deadline: string,
+    deadline: string | null | undefined,
   ) => {
+    if (!deadline) {
+      return "TBD";
+    }
     const date =
       new Date(deadline);
 
@@ -464,1066 +446,130 @@ export default function MatchesPage() {
   };
 
   // =====================================================
-  // FORMAT ROUND DATE
+  // LOAD FIXTURE LOGO
   // =====================================================
 
-  const formatRoundDate = (
-    roundMatches: Match[],
-  ) => {
-    if (!roundMatches.length) {
-      return "";
-    }
-
-    const date =
-      new Date(
-        roundMatches[0]
-          .deadline,
-      );
-
-    if (
-      Number.isNaN(
-        date.getTime(),
-      )
-    ) {
-      return "";
-    }
-
-    return date.toLocaleDateString(
-      undefined,
-      {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      },
-    );
-  };
-
-
-  //fixture feint logo
-
   const loadFixtureLogo =
-  (): Promise<HTMLImageElement | null> => {
-    return new Promise((resolve) => {
-      const img = new Image();
+    (): Promise<HTMLImageElement | null> => {
+      return new Promise((resolve) => {
+        const img = new Image();
 
-      img.src = "/icon.png";
+        img.src = "/icon.png";
 
-      img.onload = () => {
-        resolve(img);
-      };
+        img.onload = () => {
+          resolve(img);
+        };
 
-      img.onerror = () => {
-        resolve(null);
-      };
-    });
-  };
+        img.onerror = () => {
+          resolve(null);
+        };
+      });
+    };
 
   // =====================================================
   // DOWNLOAD ROUND FIXTURE
   // =====================================================
 
   const downloadRoundFixture = async (
-  round: number,
-  roundMatches: Match[],
-) => {
-  if (
-    !division ||
-    roundMatches.length === 0
-  ) {
-    return;
-  }
-
-  try {
-    // ===================================================
-    // PDF
-    // ===================================================
-
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: [260, 205],
-    });
-
-    const pageWidth =
-      doc.internal.pageSize.getWidth();
-
-    const pageHeight =
-      doc.internal.pageSize.getHeight();
-
-    // ===================================================
-    // CLEAN / CLASSIC DESIGN
-    // ===================================================
-
-    const black: [number, number, number] = [
-      18,
-      18,
-      18,
-    ];
-
-    const darkGray: [number, number, number] = [
-      55,
-      55,
-      55,
-    ];
-
-    const gray: [number, number, number] = [
-      115,
-      115,
-      115,
-    ];
-
-    const lightGray: [number, number, number] = [
-      238,
-      238,
-      238,
-    ];
-
-    const softGray: [number, number, number] = [
-      248,
-      248,
-      248,
-    ];
-
-    const accent: [number, number, number] = [
-      205,
-      25,
-      75,
-    ];
-
-    const white: [number, number, number] = [
-      255,
-      255,
-      255,
-    ];
-
-    // Classic green for winner
-    const winnerGreen: [number, number, number] = [
-      34,
-      120,
-      70,
-    ];
-
-    // Soft classic green background
-    const winnerGreenSoft: [number, number, number] = [
-      235,
-      246,
-      239,
-    ];
-
-    // Clean white page
-    doc.setFillColor(
-      ...white,
-    );
-
-    doc.rect(
-      0,
-      0,
-      pageWidth,
-      pageHeight,
-      "F",
-    );
-
-    // ===================================================
-    // TOP ACCENT
-    // ===================================================
-
-    doc.setFillColor(
-      ...accent,
-    );
-
-    doc.rect(
-      0,
-      0,
-      pageWidth,
-      4,
-      "F",
-    );
-
-    // ===================================================
-    // HEADER
-    // ===================================================
-
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(22);
-
-    doc.setTextColor(
-      ...black,
-    );
-
-    doc.text(
-      "THRILL SEEKERS",
-      10,
-      18,
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(7.5);
-
-    doc.setTextColor(
-      ...gray,
-    );
-
-    doc.text(
-      "EFOOTBALL CLUB",
-      10,
-      24,
-    );
-
-    // Right-side document label
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(8);
-
-    doc.setTextColor(
-      ...accent,
-    );
-
-    doc.text(
-      "MATCH FIXTURE",
-      pageWidth - 10,
-      17,
-      {
-        align: "right",
-      },
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(7);
-
-    doc.setTextColor(
-      ...gray,
-    );
-
-    doc.text(
-      `ROUND ${round}`,
-      pageWidth - 10,
-      23,
-      {
-        align: "right",
-      },
-    );
-
-    // Thin divider
-    doc.setDrawColor(
-      ...lightGray,
-    );
-
-    doc.setLineWidth(0.5);
-
-    doc.line(
-      10,
-      30,
-      pageWidth - 10,
-      30,
-    );
-
-    // ===================================================
-    // DIVISION / SEASON TITLE
-    // ===================================================
-
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(15);
-
-    doc.setTextColor(
-      ...black,
-    );
-
-    doc.text(
-      division.name ||
-        `Division ${division.divisionNumber}`,
-      10,
-      41,
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(8);
-
-    doc.setTextColor(
-      ...gray,
-    );
-
-    doc.text(
-      `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
-      10,
-      47,
-    );
-
-    // Accent underline
-    doc.setFillColor(
-      ...accent,
-    );
-
-    doc.rect(
-      10,
-      51,
-      34,
-      1.5,
-      "F",
-    );
-
-    // ===================================================
-    // ROUND SUMMARY
-    // ===================================================
-
-    const completedCount =
-      roundMatches.filter(
-        (match) =>
-          match.status ===
-          "COMPLETED",
-      ).length;
-
-    doc.setFillColor(
-      ...softGray,
-    );
-
-    doc.roundedRect(
-      10,
-      56,
-      pageWidth - 20,
-      21,
-      2.5,
-      2.5,
-      "F",
-    );
-
-    // Left vertical accent
-    doc.setFillColor(
-      ...accent,
-    );
-
-    doc.roundedRect(
-      10,
-      56,
-      2,
-      21,
-      1,
-      1,
-      "F",
-    );
-
-    // Round
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(11);
-
-    doc.setTextColor(
-      ...black,
-    );
-
-    doc.text(
-      `ROUND ${round}`,
-      18,
-      66,
-    );
-
-    // Deadline
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(7.5);
-
-    doc.setTextColor(
-      ...gray,
-    );
-
-    doc.text(
-      `Deadline: ${formatDeadline(
-        roundMatches[0].deadline,
-      )}`,
-      58,
-      66,
-    );
-
-    // Total matches
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(7.5);
-
-    doc.setTextColor(
-      ...darkGray,
-    );
-
-    doc.text(
-      `TOTAL MATCHES  ${roundMatches.length}`,
-      pageWidth - 18,
-      63,
-      {
-        align: "right",
-      },
-    );
-
-    // Completed matches
-    const summaryColor =
-      completedCount ===
-      roundMatches.length
-        ? winnerGreen
-        : darkGray;
-
-    doc.setTextColor(
-      ...summaryColor,
-    );
-
-    doc.text(
-      `COMPLETED  ${completedCount}`,
-      pageWidth - 18,
-      70,
-      {
-        align: "right",
-      },
-    );
-
-    // ===================================================
-    // WATERMARK LOGO
-    // ===================================================
-
-    const fixtureLogo =
-      await loadFixtureLogo();
-
-    // ===================================================
-    // MATCH DATA
-    // ===================================================
-
-    const tableRows =
-      roundMatches.map(
-        (match, index) => {
-          const homePlayer =
-            getPlayer(
-              match.homePlayerId,
-            );
-
-          const awayPlayer =
-            getPlayer(
-              match.awayPlayerId,
-            );
-
-          const homeName =
-            homePlayer?.name ||
-            match.homePlayerId;
-
-          const awayName =
-            awayPlayer?.name ||
-            match.awayPlayerId;
-
-          const isCompleted =
-            match.status ===
-            "COMPLETED";
-
-          const hasScore =
-            isCompleted &&
-            match.homeScore !== null &&
-            match.awayScore !== null;
-
-          const homeWon =
-            hasScore &&
-            match.homeScore! >
-              match.awayScore!;
-
-          const awayWon =
-            hasScore &&
-            match.awayScore! >
-              match.homeScore!;
-
-          const formattedStatus =
-            match.status
-              ? match.status
-                  .toLowerCase()
-                  .replace(
-                    /^./,
-                    (letter) =>
-                      letter.toUpperCase(),
-                  )
-              : "";
-
-          return {
-            row: [
-              String(index + 1),
-
-              match.matchId,
-
-              homeName,
-
-              hasScore
-                ? String(
-                    match.homeScore,
-                  )
-                : "",
-
-              hasScore
-                ? String(
-                    match.awayScore,
-                  )
-                : "",
-
-              awayName,
-
-              formatDeadline(
-                match.deadline,
-              ),
-
-              formattedStatus,
-            ],
-
-            homeWon,
-
-            awayWon,
-
-            isCompleted,
-          };
-        },
-      );
-
-    // ===================================================
-    // TABLE
-    // ===================================================
-
-    autoTable(doc, {
-      startY: 79,
-
-      margin: {
-        left: 10,
-        right: 10,
-      },
-
-      head: [
-        [
-          "#",
-          "MATCH ID",
-          "HOME",
-          "H",
-          "A",
-          "AWAY",
-          "DEADLINE",
-          "STATUS",
-        ],
-      ],
-
-      body: tableRows.map(
-        (item) => item.row,
-      ),
-
-      theme: "plain",
-
-      styles: {
-        font: "helvetica",
-        fontSize: 8.5,
-        cellPadding: 2.5,
-        valign: "middle",
-        lineWidth: 0.2,
-        lineColor:
-          lightGray,
-        textColor:
-          black,
-        fillColor:
-          false,
-        overflow:
-          "ellipsize",
-        minCellHeight:
-          8.5,
-      },
-
-      headStyles: {
-        fontStyle:
-          "bold",
-        fontSize: 8,
-        textColor:
-          white,
-        fillColor:
-          false,
-        halign:
-          "center",
-        valign:
-          "middle",
-        cellPadding: 3,
-      },
-
-      columnStyles: {
-        // #
-        0: {
-          cellWidth: 10,
-          halign:
-            "center",
-          fontStyle:
-            "bold",
-        },
-
-        // MATCH ID
-        1: {
-          cellWidth: 28,
-          fontStyle:
-            "bold",
-        },
-
-        // HOME
-        2: {
-          cellWidth: 48,
-          fontSize: 8.0,
-          fontStyle:
-            "bold",
-          halign:
-            "right",
-          overflow:
-            "ellipsize",
-        },
-
-        // HOME SCORE
-        3: {
-          cellWidth: 9,
-          halign:
-            "right",
-          fontStyle:
-            "bold",
-        },
-
-        // AWAY SCORE
-        4: {
-          cellWidth: 9,
-          halign:
-            "left",
-          fontStyle:
-            "bold",
-        },
-
-        // AWAY
-        5: {
-          cellWidth: 48,
-          fontSize: 8.0,
-          fontStyle:
-            "bold",
-          halign:
-            "left",
-          overflow:
-            "ellipsize",
-        },
-
-        // DEADLINE
-        6: {
-          cellWidth: 56,
-          halign:
-            "center",
-        },
-
-        // STATUS
-        7: {
-          cellWidth: 38,
-          halign:
-            "center",
-          fontStyle:
-            "bold",
-          overflow:
-            "ellipsize",
-        },
-      },
-
-      // Watermark centered specifically between HOME and AWAY columns
-      didDrawPage: () => {
-        if (fixtureLogo) {
-          doc.saveGraphicsState();
-          doc.setGState(
-            doc.GState({
-              opacity: 0.11,
-            }),
-          );
-
-          const logoSize = 65;
-          // Offset to center between HOME, H, A, AWAY columns (Columns 2 - 5)
-          const logoX = 72.5; 
-          const logoY = 95;
-
-          doc.addImage(
-            fixtureLogo,
-            "PNG",
-            logoX,
-            logoY,
-            logoSize,
-            logoSize,
-          );
-
-          doc.restoreGraphicsState();
-        }
-      },
-
-      // =================================================
-      // ROW DESIGN
-      // =================================================
-
-      willDrawCell:
-        (data) => {
-          // -------------------------------------------------
-          // HEADER
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-            "head"
-          ) {
-            doc.setFillColor(
-              ...black,
-            );
-
-            doc.roundedRect(
-              data.cell.x +
-                0.5,
-              data.cell.y +
-                0.8,
-              data.cell.width -
-                1,
-              data.cell.height -
-                1.6,
-              1.5,
-              1.5,
-              "F",
-            );
-
-            return;
-          }
-
-          const rowInfo =
-            tableRows[
-              data.row.index
-            ];
-
-          // -------------------------------------------------
-          // ROW BACKGROUND
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-              "body" &&
-            data.column.index ===
-              0
-          ) {
-            const tableLeft = 10;
-
-            const tableWidth =
-              pageWidth - 20;
-
-            doc.setFillColor(
-              data.row.index %
-                2 ===
-                0
-                ? 248
-                : 255,
-              data.row.index %
-                2 ===
-                0
-                ? 248
-                : 255,
-              data.row.index %
-                2 ===
-                0
-                ? 248
-                : 255,
-            );
-
-            doc.saveGraphicsState();
-            doc.setGState(
-              doc.GState({
-                opacity: 0.65,
-              }),
-            );
-
-            doc.roundedRect(
-              tableLeft,
-              data.cell.y +
-                0.5,
-              tableWidth,
-              data.row.height -
-                1,
-              2,
-              2,
-              "F",
-            );
-
-            doc.restoreGraphicsState();
-
-            // Bottom separator
-            doc.setDrawColor(
-              ...lightGray,
-            );
-
-            doc.setLineWidth(
-              0.25,
-            );
-
-            doc.line(
-              tableLeft + 2,
-              data.cell.y +
-                data.row.height,
-              tableLeft +
-                tableWidth -
-                2,
-              data.cell.y +
-                data.row.height,
-            );
-          }
-
-          // -------------------------------------------------
-          // MATCH NUMBER BADGE
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-              "body" &&
-            data.column.index ===
-              0
-          ) {
-            doc.setFillColor(
-              ...black,
-            );
-
-            doc.roundedRect(
-              data.cell.x +
-                1.5,
-              data.cell.y + 2,
-              data.cell.width -
-                3,
-              data.cell.height -
-                4,
-              1.5,
-              1.5,
-              "F",
-            );
-
-            data.cell.styles.textColor =
-              white;
-          }
-
-          // -------------------------------------------------
-          // HOME WINNER
-          // -------------------------------------------------
-
-          if (
-            rowInfo?.homeWon &&
-            data.section ===
-              "body" &&
-            (
-              data.column.index ===
-                2 ||
-              data.column.index ===
-                3
-            )
-          ) {
-            doc.setFillColor(
-              ...winnerGreenSoft,
-            );
-
-            doc.roundedRect(
-              data.cell.x + 1,
-              data.cell.y + 1,
-              data.cell.width -
-                2,
-              data.cell.height -
-                2,
-              1.5,
-              1.5,
-              "F",
-            );
-          }
-
-          // -------------------------------------------------
-          // AWAY WINNER
-          // -------------------------------------------------
-
-          if (
-            rowInfo?.awayWon &&
-            data.section ===
-              "body" &&
-            (
-              data.column.index ===
-                4 ||
-              data.column.index ===
-                5
-            )
-          ) {
-            doc.setFillColor(
-              ...winnerGreenSoft,
-            );
-
-            doc.roundedRect(
-              data.cell.x + 1,
-              data.cell.y + 1,
-              data.cell.width -
-                2,
-              data.cell.height -
-                2,
-              1.5,
-              1.5,
-              "F",
-            );
-          }
-        },
-
-      // =================================================
-      // TEXT / WINNER COLORS
-      // =================================================
-
-      didParseCell:
-        (data) => {
-          const rowInfo =
-            tableRows[
-              data.row.index
-            ];
-
-          // -------------------------------------------------
-          // MATCH ID
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-              "body" &&
-            data.column.index ===
-              1
-          ) {
-            data.cell.styles.textColor =
-              accent;
-          }
-
-          // -------------------------------------------------
-          // HOME WINNER
-          // -------------------------------------------------
-
-          if (
-            rowInfo?.homeWon &&
-            data.section ===
-              "body" &&
-            (
-              data.column.index ===
-                2 ||
-              data.column.index ===
-                3
-            )
-          ) {
-            data.cell.styles.textColor =
-              winnerGreen;
-
-            data.cell.styles.fontStyle =
-              "bold";
-          }
-
-          // -------------------------------------------------
-          // AWAY WINNER
-          // -------------------------------------------------
-
-          if (
-            rowInfo?.awayWon &&
-            data.section ===
-              "body" &&
-            (
-              data.column.index ===
-                4 ||
-              data.column.index ===
-                5
-            )
-          ) {
-            data.cell.styles.textColor =
-              winnerGreen;
-
-            data.cell.styles.fontStyle =
-              "bold";
-          }
-
-          // -------------------------------------------------
-          // SCORES
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-              "body" &&
-            (
-              data.column.index ===
-                3 ||
-              data.column.index ===
-                4
-            )
-          ) {
-            data.cell.styles.fontSize =
-              9.5;
-
-            data.cell.styles.fontStyle =
-              "bold";
-          }
-
-          // -------------------------------------------------
-          // STATUS
-          // -------------------------------------------------
-
-          if (
-            data.section ===
-              "body" &&
-            data.column.index ===
-              7
-          ) {
-            data.cell.styles.textColor =
-              black;
-
-            data.cell.styles.fontStyle =
-              "normal";
-
-            data.cell.styles.halign =
-              "center";
-          }
-        },
-    });
-
-    // ===================================================
-    // FOOTER
-    // ===================================================
-
-    const pageCount =
-      doc.getNumberOfPages();
-
-    for (
-      let page = 1;
-      page <= pageCount;
-      page++
+    round: number,
+    roundMatches: Match[],
+  ) => {
+    if (
+      !division ||
+      roundMatches.length === 0
     ) {
-      doc.setPage(page);
+      return;
+    }
 
-      doc.setDrawColor(
-        ...lightGray,
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: [260, 205],
+      });
+
+      const pageWidth =
+        doc.internal.pageSize.getWidth();
+
+      const pageHeight =
+        doc.internal.pageSize.getHeight();
+
+      const black: [number, number, number] = [
+        18,
+        18,
+        18,
+      ];
+
+      const darkGray: [number, number, number] = [
+        55,
+        55,
+        55,
+      ];
+
+      const gray: [number, number, number] = [
+        115,
+        115,
+        115,
+      ];
+
+      const lightGray: [number, number, number] = [
+        238,
+        238,
+        238,
+      ];
+
+      const softGray: [number, number, number] = [
+        248,
+        248,
+        248,
+      ];
+
+      const accent: [number, number, number] = [
+        205,
+        25,
+        75,
+      ];
+
+      const white: [number, number, number] = [
+        255,
+        255,
+        255,
+      ];
+
+      const winnerGreen: [number, number, number] = [
+        34,
+        120,
+        70,
+      ];
+
+      const winnerGreenSoft: [number, number, number] = [
+        235,
+        246,
+        239,
+      ];
+
+      doc.setFillColor(
+        ...white,
       );
 
-      doc.setLineWidth(
-        0.35,
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        pageHeight,
+        "F",
       );
 
-      doc.line(
-        10,
-        pageHeight - 20,
-        pageWidth - 10,
-        pageHeight - 20,
+      doc.setFillColor(
+        ...accent,
+      );
+
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        4,
+        "F",
       );
 
       doc.setFont(
@@ -1531,7 +577,7 @@ export default function MatchesPage() {
         "bold",
       );
 
-      doc.setFontSize(7);
+      doc.setFontSize(22);
 
       doc.setTextColor(
         ...black,
@@ -1540,7 +586,7 @@ export default function MatchesPage() {
       doc.text(
         "THRILL SEEKERS",
         10,
-        pageHeight - 14,
+        18,
       );
 
       doc.setFont(
@@ -1548,26 +594,104 @@ export default function MatchesPage() {
         "normal",
       );
 
+      doc.setFontSize(7.5);
+
       doc.setTextColor(
         ...gray,
       );
 
       doc.text(
-        `Efootball Club  •  Round ${round}`,
-        pageWidth / 2,
-        pageHeight - 14,
-        {
-          align: "center",
-        },
+        "EFOOTBALL CLUB",
+        10,
+        24,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(8);
+
+      doc.setTextColor(
+        ...accent,
       );
 
       doc.text(
-        `Completed ${completedCount}/${roundMatches.length}`,
+        "MATCH FIXTURE",
         pageWidth - 10,
-        pageHeight - 14,
+        17,
         {
           align: "right",
         },
+      );
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
+
+      doc.setFontSize(7);
+
+      doc.setTextColor(
+        ...gray,
+      );
+
+      doc.text(
+        `ROUND ${round}`,
+        pageWidth - 10,
+        23,
+        {
+          align: "right",
+        },
+      );
+
+      doc.setDrawColor(
+        ...lightGray,
+      );
+
+      doc.setLineWidth(0.5);
+
+      doc.line(
+        10,
+        30,
+        pageWidth - 10,
+        30,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(15);
+
+      doc.setTextColor(
+        ...black,
+      );
+
+      doc.text(
+        division.name ||
+          `Division ${division.divisionNumber}`,
+        10,
+        41,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
+
+      doc.setFontSize(8);
+
+      doc.setTextColor(
+        ...gray,
+      );
+
+      doc.text(
+        `Season ${division.season}-${division.season + 1}  •  Phase ${division.phase}`,
+        10,
+        47,
       );
 
       doc.setFillColor(
@@ -1576,238 +700,925 @@ export default function MatchesPage() {
 
       doc.rect(
         10,
-        pageHeight - 8,
+        51,
+        34,
+        1.5,
+        "F",
+      );
+
+      const completedCount =
+        roundMatches.filter(
+          (match) =>
+            match.status ===
+            "COMPLETED",
+        ).length;
+
+      doc.setFillColor(
+        ...softGray,
+      );
+
+      doc.roundedRect(
+        10,
+        56,
         pageWidth - 20,
+        21,
+        2.5,
+        2.5,
+        "F",
+      );
+
+      doc.setFillColor(
+        ...accent,
+      );
+
+      doc.roundedRect(
+        10,
+        56,
+        2,
+        21,
+        1,
         1,
         "F",
       );
-    }
 
-    // ===================================================
-    // FILE NAME
-    // ===================================================
-
-    const safeDivisionName =
-      (
-        division.name ||
-        `Division-${division.divisionNumber}`
-      )
-        .replace(
-          /[^a-z0-9]+/gi,
-          "-",
-        )
-        .replace(
-          /^-+|-+$/g,
-          "",
-        );
-
-    // ===================================================
-    // CONVERT PDF → PNG
-    // ===================================================
-
-    const pdfData =
-      doc.output(
-        "arraybuffer",
+      doc.setFont(
+        "helvetica",
+        "bold",
       );
 
-    const pdf =
-      await pdfjsLib
-        .getDocument({
-          data: pdfData,
-        })
-        .promise;
+      doc.setFontSize(11);
 
-    // ===================================================
-    // RENDER ALL PDF PAGES
-    // ===================================================
+      doc.setTextColor(
+        ...black,
+      );
 
-    const renderScale = 3;
+      doc.text(
+        `ROUND ${round}`,
+        18,
+        66,
+      );
 
-    const renderedPages:
-      HTMLCanvasElement[] =
-      [];
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
 
-    let totalHeight = 0;
+      doc.setFontSize(7.5);
 
-    let maxWidth = 0;
+      doc.setTextColor(
+        ...gray,
+      );
 
-    for (
-      let pageNumber = 1;
-      pageNumber <=
-      pdf.numPages;
-      pageNumber++
-    ) {
-      const page =
-        await pdf.getPage(
-          pageNumber,
+      doc.text(
+        `Deadline: ${formatDeadline(
+          roundMatches[0].deadline,
+        )}`,
+        58,
+        66,
+      );
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.setFontSize(7.5);
+
+      doc.setTextColor(
+        ...darkGray,
+      );
+
+      doc.text(
+        `TOTAL MATCHES  ${roundMatches.length}`,
+        pageWidth - 18,
+        63,
+        {
+          align: "right",
+        },
+      );
+
+      const summaryColor =
+        completedCount ===
+        roundMatches.length
+          ? winnerGreen
+          : darkGray;
+
+      doc.setTextColor(
+        ...summaryColor,
+      );
+
+      doc.text(
+        `COMPLETED  ${completedCount}`,
+        pageWidth - 18,
+        70,
+        {
+          align: "right",
+        },
+      );
+
+      const fixtureLogo =
+        await loadFixtureLogo();
+
+      const tableRows =
+        roundMatches.map(
+          (match, index) => {
+            const homePlayer =
+              getPlayer(
+                match.homePlayerId,
+              );
+
+            const awayPlayer =
+              getPlayer(
+                match.awayPlayerId,
+              );
+
+            const homeName =
+              homePlayer?.name ||
+              match.homePlayerId;
+
+            const awayName =
+              awayPlayer?.name ||
+              match.awayPlayerId;
+
+            const isCompleted =
+              match.status ===
+              "COMPLETED";
+
+            const hasScore =
+              isCompleted &&
+              match.homeScore !== null &&
+              match.awayScore !== null;
+
+            const homeWon =
+              hasScore &&
+              match.homeScore! >
+                match.awayScore!;
+
+            const awayWon =
+              hasScore &&
+              match.awayScore! >
+                match.homeScore!;
+
+            const formattedStatus =
+              match.status
+                ? match.status
+                    .toLowerCase()
+                    .replace(
+                      /^./,
+                      (letter) =>
+                        letter.toUpperCase(),
+                    )
+                : "";
+
+            return {
+              row: [
+                String(index + 1),
+
+                match.matchId,
+
+                homeName,
+
+                hasScore
+                  ? String(
+                      match.homeScore,
+                    )
+                  : "",
+
+                hasScore
+                  ? String(
+                      match.awayScore,
+                    )
+                  : "",
+
+                awayName,
+
+                formatDeadline(
+                  match.deadline,
+                ),
+
+                formattedStatus,
+              ],
+
+              homeWon,
+
+              awayWon,
+
+              isCompleted,
+            };
+          },
         );
 
-      const viewport =
-        page.getViewport({
-          scale: renderScale,
-        });
+      autoTable(doc, {
+        startY: 79,
 
-      const canvas =
+        margin: {
+          left: 10,
+          right: 10,
+        },
+
+        head: [
+          [
+            "#",
+            "MATCH ID",
+            "HOME",
+            "H",
+            "A",
+            "AWAY",
+            "DEADLINE",
+            "STATUS",
+          ],
+        ],
+
+        body: tableRows.map(
+          (item) => item.row,
+        ),
+
+        theme: "plain",
+
+        styles: {
+          font: "helvetica",
+          fontSize: 8.5,
+          cellPadding: 2.5,
+          valign: "middle",
+          lineWidth: 0.2,
+          lineColor:
+            lightGray,
+          textColor:
+            black,
+          fillColor:
+            false,
+          overflow:
+            "ellipsize",
+          minCellHeight:
+            8.5,
+        },
+
+        headStyles: {
+          fontStyle:
+            "bold",
+          fontSize: 8,
+          textColor:
+            white,
+          fillColor:
+            false,
+          halign:
+            "center",
+          valign:
+            "middle",
+          cellPadding: 3,
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 10,
+            halign:
+              "center",
+            fontStyle:
+              "bold",
+          },
+
+          1: {
+            cellWidth: 28,
+            fontStyle:
+              "bold",
+          },
+
+          2: {
+            cellWidth: 48,
+            fontSize: 8.0,
+            fontStyle:
+              "bold",
+            halign:
+              "right",
+            overflow:
+              "ellipsize",
+          },
+
+          3: {
+            cellWidth: 9,
+            halign:
+              "right",
+            fontStyle:
+              "bold",
+          },
+
+          4: {
+            cellWidth: 9,
+            halign:
+              "left",
+            fontStyle:
+              "bold",
+          },
+
+          5: {
+            cellWidth: 48,
+            fontSize: 8.0,
+            fontStyle:
+              "bold",
+            halign:
+              "left",
+            overflow:
+              "ellipsize",
+          },
+
+          6: {
+            cellWidth: 56,
+            halign:
+              "center",
+          },
+
+          7: {
+            cellWidth: 38,
+            halign:
+              "center",
+            fontStyle:
+              "bold",
+            overflow:
+              "ellipsize",
+          },
+        },
+
+        didDrawPage: () => {
+          if (fixtureLogo) {
+            doc.saveGraphicsState();
+            doc.setGState(
+              doc.GState({
+                opacity: 0.11,
+              }),
+            );
+
+            const logoSize = 65;
+            const logoX = 72.5; 
+            const logoY = 95;
+
+            doc.addImage(
+              fixtureLogo,
+              "PNG",
+              logoX,
+              logoY,
+              logoSize,
+              logoSize,
+            );
+
+            doc.restoreGraphicsState();
+          }
+        },
+
+        willDrawCell:
+          (data) => {
+            if (
+              data.section ===
+              "head"
+            ) {
+              doc.setFillColor(
+                ...black,
+              );
+
+              doc.roundedRect(
+                data.cell.x +
+                  0.5,
+                data.cell.y +
+                  0.8,
+                data.cell.width -
+                  1,
+                data.cell.height -
+                  1.6,
+                1.5,
+                1.5,
+                "F",
+              );
+
+              return;
+            }
+
+            const rowInfo =
+              tableRows[
+                data.row.index
+              ];
+
+            if (
+              data.section ===
+                "body" &&
+              data.column.index ===
+                0
+            ) {
+              const tableLeft = 10;
+
+              const tableWidth =
+                pageWidth - 20;
+
+              doc.setFillColor(
+                data.row.index %
+                  2 ===
+                  0
+                  ? 248
+                  : 255,
+                data.row.index %
+                  2 ===
+                  0
+                  ? 248
+                  : 255,
+                data.row.index %
+                  2 ===
+                  0
+                  ? 248
+                  : 255,
+              );
+
+              doc.saveGraphicsState();
+              doc.setGState(
+                doc.GState({
+                  opacity: 0.65,
+                }),
+              );
+
+              doc.roundedRect(
+                tableLeft,
+                data.cell.y +
+                  0.5,
+                tableWidth,
+                data.row.height -
+                  1,
+                2,
+                2,
+                "F",
+              );
+
+              doc.restoreGraphicsState();
+
+              doc.setDrawColor(
+                ...lightGray,
+              );
+
+              doc.setLineWidth(
+                0.25,
+              );
+
+              doc.line(
+                tableLeft + 2,
+                data.cell.y +
+                  data.row.height,
+                tableLeft +
+                  tableWidth -
+                  2,
+                data.cell.y +
+                  data.row.height,
+              );
+            }
+
+            if (
+              data.section ===
+                "body" &&
+              data.column.index ===
+                0
+            ) {
+              doc.setFillColor(
+                ...black,
+              );
+
+              doc.roundedRect(
+                data.cell.x +
+                  1.5,
+                data.cell.y + 2,
+                data.cell.width -
+                  3,
+                data.cell.height -
+                  4,
+                1.5,
+                1.5,
+                "F",
+              );
+
+              data.cell.styles.textColor =
+                white;
+            }
+
+            if (
+              rowInfo?.homeWon &&
+              data.section ===
+                "body" &&
+              (
+                data.column.index ===
+                  2 ||
+                data.column.index ===
+                  3
+              )
+            ) {
+              doc.setFillColor(
+                ...winnerGreenSoft,
+              );
+
+              doc.roundedRect(
+                data.cell.x + 1,
+                data.cell.y + 1,
+                data.cell.width -
+                  2,
+                data.cell.height -
+                  2,
+                1.5,
+                1.5,
+                "F",
+              );
+            }
+
+            if (
+              rowInfo?.awayWon &&
+              data.section ===
+                "body" &&
+              (
+                data.column.index ===
+                  4 ||
+                data.column.index ===
+                  5
+              )
+            ) {
+              doc.setFillColor(
+                ...winnerGreenSoft,
+              );
+
+              doc.roundedRect(
+                data.cell.x + 1,
+                data.cell.y + 1,
+                data.cell.width -
+                  2,
+                data.cell.height -
+                  2,
+                1.5,
+                1.5,
+                "F",
+              );
+            }
+          },
+
+        didParseCell:
+          (data) => {
+            const rowInfo =
+              tableRows[
+                data.row.index
+              ];
+
+            if (
+              data.section ===
+                "body" &&
+              data.column.index ===
+                1
+            ) {
+              data.cell.styles.textColor =
+                accent;
+            }
+
+            if (
+              rowInfo?.homeWon &&
+              data.section ===
+                "body" &&
+              (
+                data.column.index ===
+                  2 ||
+                data.column.index ===
+                  3
+              )
+            ) {
+              data.cell.styles.textColor =
+                winnerGreen;
+
+              data.cell.styles.fontStyle =
+                "bold";
+            }
+
+            if (
+              rowInfo?.awayWon &&
+              data.section ===
+                "body" &&
+              (
+                data.column.index ===
+                  4 ||
+                data.column.index ===
+                  5
+              )
+            ) {
+              data.cell.styles.textColor =
+                winnerGreen;
+
+              data.cell.styles.fontStyle =
+                "bold";
+            }
+
+            if (
+              data.section ===
+                "body" &&
+              (
+                data.column.index ===
+                  3 ||
+                data.column.index ===
+                  4
+              )
+            ) {
+              data.cell.styles.fontSize =
+                9.5;
+
+              data.cell.styles.fontStyle =
+                "bold";
+            }
+
+            if (
+              data.section ===
+                "body" &&
+              data.column.index ===
+                7
+            ) {
+              data.cell.styles.textColor =
+                black;
+
+              data.cell.styles.fontStyle =
+                "normal";
+
+              data.cell.styles.halign =
+                "center";
+            }
+          },
+      });
+
+      const pageCount =
+        doc.getNumberOfPages();
+
+      for (
+        let page = 1;
+        page <= pageCount;
+        page++
+      ) {
+        doc.setPage(page);
+
+        doc.setDrawColor(
+          ...lightGray,
+        );
+
+        doc.setLineWidth(
+          0.35,
+        );
+
+        doc.line(
+          10,
+          pageHeight - 20,
+          pageWidth - 10,
+          pageHeight - 20,
+        );
+
+        doc.setFont(
+          "helvetica",
+          "bold",
+        );
+
+        doc.setFontSize(7);
+
+        doc.setTextColor(
+          ...black,
+        );
+
+        doc.text(
+          "THRILL SEEKERS",
+          10,
+          pageHeight - 14,
+        );
+
+        doc.setFont(
+          "helvetica",
+          "normal",
+        );
+
+        doc.setTextColor(
+          ...gray,
+        );
+
+        doc.text(
+          `Efootball Club  •  Round ${round}`,
+          pageWidth / 2,
+          pageHeight - 14,
+          {
+            align: "center",
+          },
+        );
+
+        doc.text(
+          `Completed ${completedCount}/${roundMatches.length}`,
+          pageWidth - 10,
+          pageHeight - 14,
+          {
+            align: "right",
+          },
+        );
+
+        doc.setFillColor(
+          ...accent,
+        );
+
+        doc.rect(
+          10,
+          pageHeight - 8,
+          pageWidth - 20,
+          1,
+          "F",
+        );
+      }
+
+      const safeDivisionName =
+        (
+          division.name ||
+          `Division-${division.divisionNumber}`
+        )
+          .replace(
+            /[^a-z0-9]+/gi,
+            "-",
+          )
+          .replace(
+            /^-+|-+$/g,
+            "",
+          );
+
+      const pdfData =
+        doc.output(
+          "arraybuffer",
+        );
+
+      const pdf =
+        await pdfjsLib
+          .getDocument({
+            data: pdfData,
+          })
+          .promise;
+
+      const renderScale = 3;
+
+      const renderedPages:
+        HTMLCanvasElement[] =
+        [];
+
+      let totalHeight = 0;
+
+      let maxWidth = 0;
+
+      for (
+        let pageNumber = 1;
+        pageNumber <=
+        pdf.numPages;
+        pageNumber++
+      ) {
+        const page =
+          await pdf.getPage(
+            pageNumber,
+          );
+
+        const viewport =
+          page.getViewport({
+            scale: renderScale,
+          });
+
+        const canvas =
+          document.createElement(
+            "canvas",
+          );
+
+        const context =
+          canvas.getContext(
+            "2d",
+          );
+
+        if (!context) {
+          throw new Error(
+            "Unable to create canvas.",
+          );
+        }
+
+        canvas.width =
+          Math.ceil(
+            viewport.width,
+          );
+
+        canvas.height =
+          Math.ceil(
+            viewport.height,
+          );
+
+        await page.render({
+          canvas,
+          canvasContext:
+            context,
+          viewport,
+        }).promise;
+
+        renderedPages.push(
+          canvas,
+        );
+
+        totalHeight +=
+          canvas.height;
+
+        maxWidth = Math.max(
+          maxWidth,
+          canvas.width,
+        );
+      }
+
+      const finalCanvas =
         document.createElement(
           "canvas",
         );
 
-      const context =
-        canvas.getContext(
+      finalCanvas.width =
+        maxWidth;
+
+      finalCanvas.height =
+        totalHeight;
+
+      const finalContext =
+        finalCanvas.getContext(
           "2d",
         );
 
-      if (!context) {
+      if (!finalContext) {
         throw new Error(
-          "Unable to create canvas.",
+          "Unable to create final canvas.",
         );
       }
 
-      canvas.width =
-        Math.ceil(
-          viewport.width,
-        );
+      finalContext.fillStyle =
+        "white";
 
-      canvas.height =
-        Math.ceil(
-          viewport.height,
-        );
-
-      await page.render({
-        canvas,
-        canvasContext:
-          context,
-        viewport,
-      }).promise;
-
-      renderedPages.push(
-        canvas,
-      );
-
-      totalHeight +=
-        canvas.height;
-
-      maxWidth = Math.max(
-        maxWidth,
-        canvas.width,
-      );
-    }
-
-    // ===================================================
-    // COMBINE PAGES INTO ONE IMAGE
-    // ===================================================
-
-    const finalCanvas =
-      document.createElement(
-        "canvas",
-      );
-
-    finalCanvas.width =
-      maxWidth;
-
-    finalCanvas.height =
-      totalHeight;
-
-    const finalContext =
-      finalCanvas.getContext(
-        "2d",
-      );
-
-    if (!finalContext) {
-      throw new Error(
-        "Unable to create final canvas.",
-      );
-    }
-
-    finalContext.fillStyle =
-      "white";
-
-    finalContext.fillRect(
-      0,
-      0,
-      finalCanvas.width,
-      finalCanvas.height,
-    );
-
-    let currentY = 0;
-
-    for (
-      const pageCanvas of renderedPages
-    ) {
-      finalContext.drawImage(
-        pageCanvas,
+      finalContext.fillRect(
         0,
-        currentY,
+        0,
+        finalCanvas.width,
+        finalCanvas.height,
       );
 
-      currentY +=
-        pageCanvas.height;
+      let currentY = 0;
+
+      for (
+        const pageCanvas of renderedPages
+      ) {
+        finalContext.drawImage(
+          pageCanvas,
+          0,
+          currentY,
+        );
+
+        currentY +=
+          pageCanvas.height;
+      }
+
+      const imageBlob =
+        await new Promise<Blob | null>(
+          (resolve) => {
+            finalCanvas.toBlob(
+              (blob) =>
+                resolve(blob),
+              "image/png",
+              1,
+            );
+          },
+        );
+
+      if (!imageBlob) {
+        throw new Error(
+          "Failed to create fixture image.",
+        );
+      }
+
+      const imageUrl =
+        URL.createObjectURL(
+          imageBlob,
+        );
+
+      const link =
+        document.createElement(
+          "a",
+        );
+
+      link.href =
+        imageUrl;
+
+      link.download =
+        `${safeDivisionName}-Round-${round}-Fixture.png`;
+
+      document.body.appendChild(
+        link,
+      );
+
+      link.click();
+
+      document.body.removeChild(
+        link,
+      );
+
+      URL.revokeObjectURL(
+        imageUrl,
+      );
+    } catch (error) {
+      console.error(
+        "Fixture image generation failed:",
+        error,
+      );
     }
-
-    // ===================================================
-    // DOWNLOAD PNG
-    // ===================================================
-
-    const imageBlob =
-      await new Promise<Blob | null>(
-        (resolve) => {
-          finalCanvas.toBlob(
-            (blob) =>
-              resolve(blob),
-            "image/png",
-            1,
-          );
-        },
-      );
-
-    if (!imageBlob) {
-      throw new Error(
-        "Failed to create fixture image.",
-      );
-    }
-
-    const imageUrl =
-      URL.createObjectURL(
-        imageBlob,
-      );
-
-    const link =
-      document.createElement(
-        "a",
-      );
-
-    link.href =
-      imageUrl;
-
-    link.download =
-      `${safeDivisionName}-Round-${round}-Fixture.png`;
-
-    document.body.appendChild(
-      link,
-    );
-
-    link.click();
-
-    document.body.removeChild(
-      link,
-    );
-
-    URL.revokeObjectURL(
-      imageUrl,
-    );
-  } catch (error) {
-    console.error(
-      "Fixture image generation failed:",
-      error,
-    );
-  }
-};    
-  
-
-//end pdf
-  // =====================================================
-  // GET DATE FOR DATE INPUT
-  // =====================================================
+  };
 
   const getDateInputValue = (
     deadline: string,
@@ -1837,17 +1648,9 @@ export default function MatchesPage() {
     return `${year}-${month}-${day}`;
   };
 
-  // =====================================================
-  // CHANGE MATCH TIME
-  // =====================================================
-
   const openChangeTime = (
     match: Match,
   ) => {
-    /*
-     * Only SCHEDULED matches can
-     * be rescheduled.
-     */
     if (
       match.status !==
       "SCHEDULED"
@@ -1868,10 +1671,6 @@ export default function MatchesPage() {
     setError("");
   };
 
-  // =====================================================
-  // CLOSE CHANGE TIME
-  // =====================================================
-
   const closeChangeTime = () => {
     setChangingTimeMatchId(
       null,
@@ -1880,18 +1679,10 @@ export default function MatchesPage() {
     setNewMatchDate("");
   };
 
-  // =====================================================
-  // SAVE NEW MATCH DATE
-  // =====================================================
-
   const handleChangeTime =
     async (
       match: Match,
     ) => {
-      /*
-       * A match can only be
-       * rescheduled once.
-       */
       if (
         match.status !==
         "SCHEDULED"
@@ -1987,10 +1778,6 @@ export default function MatchesPage() {
       }
     };
 
-  // =====================================================
-  // TOGGLE ROUND
-  // =====================================================
-
   const toggleRound = (
     round: number,
   ) => {
@@ -2015,10 +1802,6 @@ export default function MatchesPage() {
     );
   };
 
-  // =====================================================
-  // MATCH STATS
-  // =====================================================
-
   const completedMatches =
     matches.filter(
       (match) =>
@@ -2040,16 +1823,10 @@ export default function MatchesPage() {
         "RESCHEDULED",
     ).length;
 
-  // =====================================================
-  // RENDER
-  // =====================================================
-
   return (
     <main className="min-h-screen bg-[#080808] text-white">
 
       <Navbar />
-
-      {/* Background glow */}
 
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
 
@@ -2058,10 +1835,6 @@ export default function MatchesPage() {
       </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-
-        {/* ==================================================
-            BACK
-        ================================================== */}
 
         <button
           type="button"
@@ -2078,10 +1851,6 @@ export default function MatchesPage() {
 
           Back to Division
         </button>
-
-        {/* ==================================================
-            HEADER
-        ================================================== */}
 
         {!loading &&
           division && (
@@ -2108,8 +1877,6 @@ export default function MatchesPage() {
                   </h1>
 
                 </div>
-
-                {/* STATS */}
 
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
 
@@ -2159,8 +1926,6 @@ export default function MatchesPage() {
                 </div>
 
               </div>
-
-              {/* MATCH PROGRESS */}
 
               {matches.length >
                 0 && (
@@ -2233,10 +1998,6 @@ export default function MatchesPage() {
             </section>
           )}
 
-        {/* ==================================================
-            LOADING
-        ================================================== */}
-
         {loading && (
           <section className="flex min-h-[350px] items-center justify-center rounded-3xl border border-white/10 bg-zinc-900/50">
 
@@ -2255,10 +2016,6 @@ export default function MatchesPage() {
 
           </section>
         )}
-
-        {/* ==================================================
-            ERROR
-        ================================================== */}
 
         {!loading &&
           error && (
@@ -2298,10 +2055,6 @@ export default function MatchesPage() {
             </section>
           )}
 
-        {/* ==================================================
-            EMPTY
-        ================================================== */}
-
         {!loading &&
           !error &&
           division &&
@@ -2330,10 +2083,6 @@ export default function MatchesPage() {
 
             </section>
           )}
-
-        {/* ==================================================
-            ROUNDS
-        ================================================== */}
 
         {!loading &&
           !error &&
@@ -2374,13 +2123,22 @@ export default function MatchesPage() {
                           "COMPLETED",
                       );
 
+                    const completedCount = roundMatches.filter(
+                      (m) => m.status === "COMPLETED"
+                    ).length;
+
+                    const scheduledCount = roundMatches.filter(
+                      (m) =>
+                        m.status === "SCHEDULED" ||
+                        m.status === "RESCHEDULED" ||
+                        !m.status
+                    ).length;
+
                     return (
                       <section
                         key={round}
                         className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/60 shadow-xl"
                       >
-
-                        {/* ROUND HEADER */}
 
                         <div
                           role="button"
@@ -2434,20 +2192,9 @@ export default function MatchesPage() {
                                   </div>
 
                                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
-
-                                    <span>
-                                      {formatRoundDate(
-                                        roundMatches,
-                                      )}
+                                    <span className="text-[11px] text-zinc-500">
+                                      Completed: {completedCount} &bull; Scheduled: {scheduledCount} &bull; Total: {roundMatches.length}
                                     </span>
-
-                                    <span>
-                                      {
-                                        roundMatches.length
-                                      }{" "}
-                                      matches
-                                    </span>
-
                                   </div>
 
                                 </div>
@@ -2455,8 +2202,6 @@ export default function MatchesPage() {
                               </div>
 
                               <div className="flex shrink-0 items-center gap-2">
-
-                                {/* DOWNLOAD FIXTURE */}
 
                                 <button
                                   type="button"
@@ -2480,8 +2225,6 @@ export default function MatchesPage() {
                                   </span>
                                 </button>
 
-                                {/* DEADLINE */}
-
                                 <div className="hidden rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] text-zinc-500 sm:block">
                                   Deadline{" "}
                                   {formatDeadline(
@@ -2489,8 +2232,6 @@ export default function MatchesPage() {
                                       .deadline,
                                   )}
                                 </div>
-
-                                {/* EXPAND / COLLAPSE */}
 
                                 <div className="rounded-xl border border-white/10 p-2 text-zinc-500">
 
@@ -2513,8 +2254,6 @@ export default function MatchesPage() {
                           </div>
 
                         </div>
-
-                        {/* ROUND MATCHES */}
 
                         {expanded && (
                           <div className="border-t border-white/10">
@@ -2619,10 +2358,6 @@ export default function MatchesPage() {
   );
 }
 
-/* ================================================== */
-/* MINI STAT */
-/* ================================================== */
-
 function MiniStat({
   icon,
   value,
@@ -2650,10 +2385,6 @@ function MiniStat({
     </div>
   );
 }
-
-/* ================================================== */
-/* MATCH CARD */
-/* ================================================== */
 
 function MatchCard({
   match,
@@ -2716,10 +2447,6 @@ function MatchCard({
     assignedAdmin?.name ||
     "Not Assigned";
 
-  // =====================================================
-  // DATE PICKER
-  // =====================================================
-
   const dateInputRef =
     useRef<HTMLInputElement>(null);
 
@@ -2740,10 +2467,6 @@ function MatchCard({
 
   return (
     <article className="p-4 sm:p-6">
-
-      {/* ==================================================
-          MATCH TOP
-      ================================================== */}
 
       <div className="flex items-center justify-between gap-3">
 
@@ -2771,22 +2494,14 @@ function MatchCard({
 
       </div>
 
-      {/* ==================================================
-          PLAYERS + SCORE
-      ================================================== */}
-
       <div className="mt-4 rounded-2xl border border-white/5 bg-black/20 p-4 sm:mt-5 sm:p-5">
 
         <div className="grid grid-cols-[minmax(0,1fr)_76px_minmax(0,1fr)] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_110px_minmax(0,1fr)] sm:gap-5">
-
-          {/* HOME */}
 
           <PlayerDisplay
             player={homePlayer}
             alignment="right"
           />
-
-          {/* SCORE */}
 
           <div className="flex min-w-0 items-center justify-center">
 
@@ -2818,18 +2533,12 @@ function MatchCard({
 
           </div>
 
-          {/* AWAY */}
-
           <PlayerDisplay
             player={awayPlayer}
             alignment="left"
           />
 
         </div>
-
-        {/* ==================================================
-            ASSIGNED ADMIN
-        ================================================== */}
 
         <div className="mt-4 flex justify-center border-t border-white/5 pt-3">
 
@@ -2864,10 +2573,6 @@ function MatchCard({
 
       </div>
 
-      {/* ==================================================
-          DEADLINE
-      ================================================== */}
-
       <div className="mt-4 flex flex-col items-start justify-between gap-2 text-xs sm:flex-row sm:items-center">
 
         <div className="flex items-center gap-2 text-zinc-500">
@@ -2888,15 +2593,9 @@ function MatchCard({
 
       </div>
 
-      {/* ==================================================
-          ACTIONS
-      ================================================== */}
-
       {(canSubmitResult ||
         isSuperAdmin) && (
         <div className="mt-5 flex flex-col gap-2 border-t border-white/10 pt-4 sm:flex-row sm:justify-end">
-
-          {/* SUBMIT RESULT */}
 
           {canSubmitResult &&
             !isCompleted &&
@@ -2918,14 +2617,8 @@ function MatchCard({
               </button>
             )}
 
-          {/* SUPERADMIN */}
-
           {isSuperAdmin && (
             <>
-              {/* CHANGE TIME
-                  ONLY SCHEDULED MATCHES
-               */}
-
               {match.status ===
                 "SCHEDULED" && (
                 <button
@@ -2942,11 +2635,6 @@ function MatchCard({
                   Change Time
                 </button>
               )}
-
-              {/* ADD ADMIN
-                  ONLY WHEN MATCH IS NOT
-                  COMPLETED/CANCELLED
-               */}
 
               {!isCompleted &&
                 !isCancelled && (
@@ -2966,16 +2654,11 @@ function MatchCard({
                   Add Admin
                 </button>
               )}
-
             </>
           )}
 
         </div>
       )}
-
-      {/* ==================================================
-          CHANGE TIME CARD
-      ================================================== */}
 
       {isChangingTime && (
         <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-400/5 p-4 sm:p-5">
@@ -3012,8 +2695,6 @@ function MatchCard({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-
-            {/* DATE */}
 
             <div className="flex-1">
 
@@ -3060,8 +2741,6 @@ function MatchCard({
 
             </div>
 
-            {/* CANCEL */}
-
             <button
               type="button"
               onClick={
@@ -3074,8 +2753,6 @@ function MatchCard({
             >
               Cancel
             </button>
-
-            {/* SAVE */}
 
             <button
               type="button"
@@ -3113,10 +2790,6 @@ function MatchCard({
   );
 }
 
-/* ================================================== */
-/* PLAYER DISPLAY */
-/* ================================================== */
-
 function PlayerDisplay({
   player,
   alignment,
@@ -3149,15 +2822,17 @@ function PlayerDisplay({
   );
 }
 
-/* ================================================== */
-/* STATUS */
-/* ================================================== */
-
 function StatusBadge({
-  status,
+  status,deadline,
 }: {
   status: MatchStatus;
+  deadline?: string | null;
 }) {
+
+  const isTbd =
+    !deadline ||
+    new Date(deadline).getTime() === 0 ||
+    Number.isNaN(new Date(deadline).getTime());
   if (
     status ===
     "COMPLETED"
@@ -3191,6 +2866,13 @@ function StatusBadge({
     );
   }
 
+  if (isTbd) {
+    return (
+      <span className="rounded-full border border-zinc-500/20 bg-zinc-500/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-400">
+        Pending
+      </span>
+    );
+  }
   return (
     <span className="rounded-full border border-yellow-400/20 bg-yellow-400/10 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wider text-yellow-400">
       Scheduled
@@ -3198,13 +2880,11 @@ function StatusBadge({
   );
 }
 
-/* ================================================== */
-/* DATE FORMAT */
-/* ================================================== */
-
 function formatDateTime(
-  value: string,
+  value: string | null| undefined,
 ) {
+  if(!value)
+    return "TBD"
   const date =
     new Date(value);
 

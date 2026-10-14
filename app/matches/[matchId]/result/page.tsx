@@ -469,8 +469,10 @@ export default function SubmitMatchResultPage() {
   };
 
   const formatDeadline = (
-    value: string
+    value: string | null | undefined
   ) => {
+    if(!value)
+      return "TBD"
     const date =
       new Date(value);
 

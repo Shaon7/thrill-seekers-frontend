@@ -73,7 +73,9 @@ function getLocalDateInput(value: string): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDateTime(value: string): string {
+function formatDateTime(value: string | null): string {
+  if(!value)
+    return "TBD"
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown date";
 

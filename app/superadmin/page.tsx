@@ -246,9 +246,9 @@ export default function Home() {
 
             <ManagementCard
               icon={<Table2 size={24} />}
-              title="Point Tables"
-              description="View and manage competition standings."
-              href="/point-table"
+              title="Manage Matches"
+              description="Manage All Players Matches."
+              href="/match-management"
             />
 
             <ManagementCard

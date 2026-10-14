@@ -148,8 +148,10 @@ function getErrorMessage(
 ========================================================= */
 
 function formatMatchDate(
-  value: string,
+  value: string | null | undefined,
 ) {
+  if(!value)
+    return "TBD"
   const date = new Date(value);
 
   if (
