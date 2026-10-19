@@ -1526,17 +1526,22 @@ const downloadDivisionPlayersPDF = (division: Division) => {
                                                   </div>
                                                   <div className="min-w-0">
                                                     <div className="flex items-center">
-                                                      <p
-                                                        className={`max-w-[220px] truncate font-semibold ${
+                                                      <button
+                                                        type="button"
+                                                        title={`View ${playerName}'s matches in ${division.name}`}
+                                                        onClick={() =>
+                                                          router.push(
+                                                            `/division/${division.divisionId}/players/${encodeURIComponent(row.playerId)}/matches`
+                                                          )
+                                                        }
+                                                        className={`max-w-[220px] truncate text-left font-semibold underline decoration-white/20 underline-offset-4 transition-colors hover:text-yellow-300 hover:decoration-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400/60 rounded-sm ${
                                                           isLoggedInPlayer
                                                             ? "text-yellow-400"
                                                             : "text-white"
                                                         }`}
                                                       >
-                                                        {
-                                                          playerName
-                                                        }
-                                                      </p>
+                                                        {playerName}
+                                                      </button>
                                                       {isLoggedInPlayer && (
                                                         <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-yellow-400">
                                                           You

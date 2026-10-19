@@ -253,9 +253,9 @@ export default function Home() {
 
             <ManagementCard
               icon={<BarChart3 size={24} />}
-              title="Reports & Statistics"
-              description="View platform statistics and competition reports."
-              href="/reports"
+              title="Round Deadline"
+              description="Select and Update Round Deadline"
+              href="/superadmin/round-deadline"
             />
 
             <ManagementCard
